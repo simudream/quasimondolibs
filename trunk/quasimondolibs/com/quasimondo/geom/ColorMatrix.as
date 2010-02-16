@@ -7,7 +7,12 @@
 
 	Author: Mario Klingemann
 	http://www.quasimondo.com
-
+	
+	
+	Big parts of this class are based on information found in
+	"Matrix Operations for Image Processing"
+	by Paul Haeberli
+	http://web.archive.org/web/20060110044204/http://www.sgi.com/misc/grafica/matrix/
 	
 	Matrix factors for the applyColorDeficiency() method
 	have been copied from http://www.nofunc.com/Color_Matrix_Library/ 
@@ -115,7 +120,7 @@ package com.quasimondo.geom {
 															'Achromatopsia',
 															'Achromatomaly' ];
     	
-		// Estimatged occurences of color deficiencies:
+		// Estimated occurences of color deficiencies:
     	// Protanopia: 1.32%
     	// Protanomaly: 1.32%
     	// Deuteranopia: 1.21%
