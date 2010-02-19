@@ -1,0 +1,6 @@
+#summary Proof-of-Concept of making the new ability of Firefox 3.6 and above to drag files from the desktop to the browser available to Flash
+
+
+= Firefox 3.6 and above Drag-and-drop Files from Desktop to Flash =
+
+A working demo can be found here: http://www.quasimondo.com/examples/draganddrop/dragAndDropFFF.php 
