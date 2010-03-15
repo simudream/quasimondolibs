@@ -1,0 +1,279 @@
+﻿	package com.quasimondo.geom
+	{
+	
+		public class BooleanShapeOperation 
+		{
+			public static const UNION:String 			= "UNION";
+			public static const INTERSECTION:String  	= "INTERSECTION";
+			public static const EXCLUSION:String 		= "EXCLUSION";
+			public static const SUBTRACTION:String 		= "SUBTRACT";
+			
+			public static function operate( shape1:GeometricShape, shape2:GeometricShape, operation:String ):CompoundShape
+			{
+				
+				switch(  operation )
+				{
+					case UNION:
+						return new BooleanShapeOperation().union( shape1, shape2 );
+					break;
+					case INTERSECTION:
+						return new BooleanShapeOperation().intersection( shape1, shape2 );
+					break;
+					case EXCLUSION:
+						return new BooleanShapeOperation().exclusion( shape1, shape2 );
+					break;
+					case SUBTRACTION:
+						return new BooleanShapeOperation().subtraction( shape1, shape2 );
+					break;
+				
+				}
+				return null;
+			
+			}
+			
+			function BooleanShapeOperation() 
+			{
+			}
+	
+			public function union( shape1:GeometricShape, shape2:GeometricShape ):CompoundShape
+			{
+				switch(  shape1.type + shape2.type )
+				{
+					case "PolygonPolygon":
+						return union_Polygon_Polygon( Polygon(shape2), Polygon(shape1) );
+						break;
+				}
+				
+				return null;
+			}
+			
+			public function union_Polygon_Polygon( p1:Polygon, p2:Polygon ):CompoundShape
+			{
+				var result:CompoundShape;
+				var mesh:LinearMesh = new LinearMesh();
+				
+				// one is fully contained in the other one  - return inner
+				if ( allInside(p1,p2) && allOutside(p2,p1)) 
+				{
+					result = new CompoundShape();
+					result.addShape( p2 );
+					return result;
+				}
+				if ( allInside(p2,p1) && allOutside(p1,p2)) 
+				{
+					result = new CompoundShape();
+					result.addShape( p1 );
+					return result;
+				}
+				
+				mesh.addPolygon( p1 );
+				mesh.addPolygon( p2 );
+				
+				var allPolys:Vector.<Polygon> = mesh.getPolygons();
+				
+				var edges:Vector.<MeshEdgeInfo> = mesh.getInnerEdges();
+				if ( edges.length > 0 )
+				{
+					for each ( var edgeInfo:MeshEdgeInfo in edges )
+					{
+						mesh.removeConnection( edgeInfo.id );
+					}
+					mesh.removeOrphans();
+				}
+				
+				var mergedPolys:Vector.<Polygon> = mesh.getPolygons();
+				var points:Vector.<Vector2>;
+				for ( var i:int = allPolys.length; --i > -1; )
+				{
+					for ( var j:int = 0; j < mergedPolys.length; j++ )
+					{
+						points = allPolys[i].getCopyOfPoints();
+						for ( var k:int = 0; k < points.length; k++ )
+						{
+							if ( mergedPolys[j].hasPoint( points[k] ) )
+							{
+								allPolys.splice(i,1);
+								j = mergedPolys.length;
+								break;
+							}
+						}
+					}
+				}
+				
+				for ( i = allPolys.length; --i > -1; )
+				{
+					var p:Vector2 = allPolys[i].getInsidePoint();
+					if (  p1.isInside( p, false ) ||  p2.isInside( p, false ) )
+					{
+						allPolys.splice(i,1);
+					}
+				}
+				
+				for ( i = allPolys.length; --i > -1; )
+				{
+					mesh.addPolygon( allPolys[i] );
+				}
+				
+				return CompoundShape.fromPolygons( mesh.getPolygons());
+			
+			}
+			
+			public function intersection( shape1:GeometricShape, shape2:GeometricShape ):CompoundShape
+			{
+				switch( shape1.type + shape2.type )
+				{
+					case "PolygonPolygon":
+						return intersection_Polygon_Polygon( Polygon(shape1), Polygon(shape2) );
+						break;
+				}
+				return null;
+			}
+			
+			public function exclusion( shape1:GeometricShape, shape2:GeometricShape ):CompoundShape
+			{
+				switch( shape1.type + shape2.type )
+				{
+					case "PolygonPolygon":
+						return exclusion_Polygon_Polygon( Polygon(shape1), Polygon(shape2) );
+						break;
+				}
+				return null;
+			}
+			
+			public function subtraction( shape1:GeometricShape, shape2:GeometricShape ):CompoundShape
+			{
+				switch( shape1.type + shape2.type )
+				{
+					case "PolygonPolygon":
+						return subtraction_Polygon_Polygon( Polygon(shape1), Polygon(shape2) );
+						break;
+				}
+				return null;
+			}
+			
+			public function subtraction_Polygon_Polygon( p1:Polygon, p2:Polygon ):CompoundShape
+			{
+				
+				// p1 is fully contained in p2 - return empty mesh
+				if ( allInside(p1,p2)  && allOutside(p2,p1)  ) return new CompoundShape();
+				
+				// p2 is fully contained in p1 - return both polygons
+				if ( allInside(p2,p1)  && allOutside(p1,p2) ) {
+					var result:CompoundShape = new CompoundShape();
+					result.addShape( p1 );
+					result.addShape( p2 );
+					return result;
+				}
+				
+				var mesh:LinearMesh = new LinearMesh();
+				mesh.addPolygon( p1 );
+				mesh.addPolygon( p2 );
+				
+					
+				var allPolys:Vector.<Polygon> = mesh.getPolygons();
+				mesh = new LinearMesh();
+				for ( var i:int = allPolys.length; --i > -1; )
+				{
+					var p:Vector2 = allPolys[i].getInsidePoint();
+					if ( p1.isInside( p, false ) && !p2.isInside( p, false )  )
+					{
+						mesh.addPolygon( allPolys[i] );
+					}
+				}
+				
+				return CompoundShape.fromPolygons( mesh.getPolygons());;
+			}
+			
+			public function intersection_Polygon_Polygon( p1:Polygon, p2:Polygon ):CompoundShape
+			{
+				var result:CompoundShape;
+				// one is fully contained in the other one  - return inner
+				if ( allInside(p1,p2) && allOutside(p2,p1)) 
+				{
+					result = new CompoundShape();
+					result.addShape( p1 );
+					return result;
+				}
+				if ( allInside(p2,p1) && allOutside(p1,p2)) 
+				{
+					result = new CompoundShape();
+					result.addShape( p2 );
+					return result;
+				}
+				
+				var mesh:LinearMesh = new LinearMesh();
+				mesh.addPolygon( p1 );
+				mesh.addPolygon( p2 );
+				
+				var allPolys:Vector.<Polygon> = mesh.getPolygons();
+				mesh = new LinearMesh();
+				for ( var i:int = allPolys.length; --i > -1; )
+				{
+					var p:Vector2 = allPolys[i].getInsidePoint();
+					if ( p1.isInside( p, false ) && p2.isInside( p, false )  )
+					{
+						mesh.addPolygon( allPolys[i] );
+					}
+				}
+				
+				return CompoundShape.fromPolygons( mesh.getPolygons());;
+			}
+			
+			public function exclusion_Polygon_Polygon( p1:Polygon, p2:Polygon ):CompoundShape
+			{
+				var result:CompoundShape = new CompoundShape();
+				
+				// one is fully contained in the other one  - return inner
+				if ( ( allInside(p1,p2) && allOutside(p2,p1)) || ( allInside(p2,p1) && allOutside(p1,p2)) ) 
+				{
+					result.addShape( p1 );
+					result.addShape( p2 );
+					return result;
+				}
+				
+				var mesh:LinearMesh = new LinearMesh();
+				mesh.addPolygon( p1 );
+				mesh.addPolygon( p2 );
+				
+				var allPolys:Vector.<Polygon> = mesh.getPolygons();
+				mesh = new LinearMesh();
+				for ( var i:int = allPolys.length; --i > -1; )
+				{
+					var p:Vector2 = allPolys[i].getInsidePoint();
+					if ( p1.isInside( p, false ) != p2.isInside( p, false )  )
+					{
+						result.addShape( allPolys[i] );
+					}
+				}
+				
+				return result;
+			}
+			
+			
+			private function allInside( p1:Polygon, p2:Polygon ):Boolean
+			{
+				var points:Vector.<Vector2> = p1.getCopyOfPoints();
+				for ( var i:int = points.length; --i > -1; )
+				{
+					if ( !p2.isInside(points[i]) )
+					{
+						return false
+					}
+				}
+				return true;
+			}
+			
+			private function allOutside( p1:Polygon, p2:Polygon ):Boolean
+			{
+				var points:Vector.<Vector2> = p1.getCopyOfPoints();
+				for ( var i:int = points.length; --i > -1; )
+				{
+					if ( p2.isInside(points[i]) )
+					{
+						return false
+					}
+				}
+				return true;
+			}
+	}
+}
