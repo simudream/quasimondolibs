@@ -2,7 +2,7 @@
 {
 	public class Polynomial
 	{
-		public static const TOLERANCE:Number = 1e-4;
+		public static const TOLERANCE:Number = 1e-6;
 		public static const ACCURACY:Number = 6;
 	
 		public var coefs:Vector.<Number>;
@@ -74,7 +74,7 @@
 		{
 			var minValue:Number = evaluate(min);
 			var maxValue:Number = evaluate(max);
-			var result:Number;
+			var result:Number = NaN;
 			
 			if (Math.abs(minValue)<=TOLERANCE) 
 			{
@@ -158,7 +158,7 @@
 			simplify();
 			switch (degree) {
 			case 0 :
-				result = new new Vector.<Number>();
+				result = new Vector.<Number>();
 				break;
 			case 1 :
 				result = getLinearRoot();
@@ -354,13 +354,15 @@
 					}
 					t2 = 2*Math.sqrt(t2);
 					t1 = 3*c3*c3/4-2*c2;
-					if (t1+t2>=TOLERANCE) {
+					if (t1+t2>=TOLERANCE) 
+					{
 						d = Math.sqrt(t1+t2);
 						results.push(-c3/4+d/2);
 						results.push(-c3/4-d/2);
 					}
-					if (t1-t2>=TOLERANCE) {
-						d = Math.sqrt(t1-t2);
+					if (t1-t2>=TOLERANCE) 
+					{
+							d = Math.sqrt(t1-t2);
 						results.push(-c3/4+d/2);
 						results.push(-c3/4-d/2);
 					}

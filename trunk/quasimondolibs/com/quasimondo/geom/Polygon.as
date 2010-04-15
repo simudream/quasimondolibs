@@ -12,7 +12,8 @@ package com.quasimondo.geom
 	import flash.display.Graphics;
 	import flash.geom.Rectangle;
 	
-	public class Polygon extends GeometricShape implements IIntersectable {
+	public class Polygon extends GeometricShape implements IIntersectable, ICountable, IPolygonHelpers
+	{
 		
 		public static const NOT_CONVEX:String = "NOT_CONVEX";
 		public static const NOT_CONVEX_DEGENERATE:String = "NOT_CONVEX_DEGENERATE";
@@ -253,8 +254,8 @@ package com.quasimondo.geom
 		
 		public function joinAtCommonSide( p:Polygon ):Polygon
 		{
-			var count1:int = count;
-			var count2:int = p.count;
+			var count1:int = pointCount;
+			var count2:int = p.pointCount;
 			var v:Vector2, v2:Vector2;
 			var sideIndexThis:int;
 			var sideIndexThat:int;
@@ -330,7 +331,7 @@ package com.quasimondo.geom
 		
 		public function getSplit( index1:int, index2:int ):Vector.<Polygon>
 		{
-			var pCount:int = count;
+			var pCount:int = pointCount;
 			if ( index1 < index2 )
 			{
 				var minIndex:int = index1;
@@ -424,9 +425,9 @@ package com.quasimondo.geom
 			var i:int = 0, j:int, k:int, n:int, m:int;
 			var ok:Boolean;
 			
-			while ( rest.count> 2)
+			while ( rest.pointCount> 2)
 			{
-				n = rest.count;
+				n = rest.pointCount;
 				var tri:Polygon = Polygon.fromArray(
 					[rest.points [(i + n - 1) % n], rest.points [i], rest.points [(i + 1) % n]]
 				);
@@ -439,7 +440,7 @@ package com.quasimondo.geom
 				if (tri.area * o > 0)
 				{
 					ok = true;
-					m = count;
+					m = pointCount;
 					for (k = 0; k < m; k++)
 						if (tri.isInside( points[k], false ))
 						{
@@ -504,12 +505,12 @@ package com.quasimondo.geom
 				currentArea = Math.abs( currentPolygon.area );
 				areaTolerance = currentArea * areaToleranceFactor;
 					
-				for ( i = 0; i < currentPolygon.count - 2; i++ )
+				for ( i = 0; i < currentPolygon.pointCount - 2; i++ )
 				{
-					for ( j = i + 2; j < currentPolygon.count; j++ )
+					for ( j = i + 2; j < currentPolygon.pointCount; j++ )
 					{
 						
-						if ( i == 0 && j == currentPolygon.count - 1  ) continue;
+						if ( i == 0 && j == currentPolygon.pointCount - 1  ) continue;
 			
 						splitLine = new LineSegment( currentPolygon.getPointAt(i), currentPolygon.getPointAt( j ) );
 						
@@ -536,7 +537,7 @@ package com.quasimondo.geom
 										result.push( splitPolygon2 );
 									}
 									index++;
-									i =  currentPolygon.count;
+									i =  currentPolygon.pointCount;
 									break;
 								} else if ( ( splitPolygon2.classification == CONVEX_CCW || splitPolygon2.classification == CONVEX_CW ) )
 								{
@@ -544,7 +545,7 @@ package com.quasimondo.geom
 									result.unshift( splitPolygon2 );
 									result.push( splitPolygon1 );	
 									index++;
-									i =  currentPolygon.count;
+									i =  currentPolygon.pointCount;
 									break;
 								} 
 							}
@@ -588,12 +589,12 @@ package com.quasimondo.geom
 				areaTolerance = currentArea * areaToleranceFactor;
 				bestArea = 0;
 				
-				for ( i = 0; i < currentPolygon.count - 2; i++ )
+				for ( i = 0; i < currentPolygon.pointCount - 2; i++ )
 				{
-					for ( j = i + 2; j < currentPolygon.count; j++ )
+					for ( j = i + 2; j < currentPolygon.pointCount; j++ )
 					{
 						
-						if ( i == 0 && j == currentPolygon.count - 1  ) continue;
+						if ( i == 0 && j == currentPolygon.pointCount - 1  ) continue;
 			
 						splitLine = new LineSegment( currentPolygon.getPointAt(i), currentPolygon.getPointAt( j ) );
 						
@@ -702,12 +703,12 @@ package com.quasimondo.geom
 				areaTolerance = currentArea * areaToleranceFactor;
 				bestAngle = 0;
 				
-				for ( i = 0; i < currentPolygon.count - 2; i++ )
+				for ( i = 0; i < currentPolygon.pointCount - 2; i++ )
 				{
-					for ( j = i + 2; j < currentPolygon.count; j++ )
+					for ( j = i + 2; j < currentPolygon.pointCount; j++ )
 					{
 						
-						if ( i == 0 && j == currentPolygon.count - 1  ) continue;
+						if ( i == 0 && j == currentPolygon.pointCount - 1  ) continue;
 			
 						splitLine = new LineSegment( currentPolygon.getPointAt(i), currentPolygon.getPointAt( j ) );
 						
@@ -817,7 +818,7 @@ package com.quasimondo.geom
 			}
 		}
 		
-		public function get count():int
+		public function get pointCount():int
 		{
 			return points.length;
 		}
@@ -1024,7 +1025,7 @@ package com.quasimondo.geom
 		{
 			var curDir:int, thisDir:int, thisSign:int, dirChanges:int = 0, angleSign:int = 0, iread:int ;
 		    var cross:Number;
-		  	var pCount:int = count;
+		  	var pCount:int = pointCount;
 		   
 		    if ( points.length < 3 ) return CONVEX_DEGENERATE;
 		   
@@ -1064,7 +1065,7 @@ package com.quasimondo.geom
 		private function updateSelfIntersection():Boolean
 		{
 			 if ( points.length < 4 ) return false;
-			 var pCount:int = count;
+			 var pCount:int = pointCount;
 		     var side1:LineSegment;
 		     var side2:LineSegment;
 		    
@@ -1324,7 +1325,7 @@ package com.quasimondo.geom
 			do
 			{
 				ok = true;
-				n = count;
+				n = pointCount;
 				for (i = 0; i < n; i++)
 				{
 					if ( getPointAt(i).squaredDistanceToVector(getPointAt(i+1)) < SNAP_DISTANCE )

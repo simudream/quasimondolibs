@@ -451,17 +451,17 @@
 			}
 			if (!loop)
 			{
-				path.deletePointAt(path.count-1);
-				path.deletePointAt(path.count-1);
+				path.deletePointAt(path.pointCount-1);
+				path.deletePointAt(path.pointCount-1);
 				v1 = path.getPointAt(0).getMinus(path.getPointAt(2));
 				v1.newLength( -( mode == CUBIC_PATH_RELATIVE ?  path.getPointAt(0).distanceToVector( path.getPointAt(3)) * smoothFactor : smoothFactor ) );
 				v1.plus(path.getPointAt(0));
 				path.getPointAt(1).setValue( v1 );
 				
-				v1 = path.getPointAt(path.count-1).getMinus(path.getPointAt(path.count-3));
-				v1.newLength( -( mode == CUBIC_PATH_RELATIVE ? path.getPointAt(path.count-1).distanceToVector( path.getPointAt(path.count-4)) * smoothFactor : smoothFactor ) );
-				v1.plus(path.getPointAt(path.count-1));
-				path.getPointAt(path.count-2).setValue(v1);
+				v1 = path.getPointAt(path.pointCount-1).getMinus(path.getPointAt(path.pointCount-3));
+				v1.newLength( -( mode == CUBIC_PATH_RELATIVE ? path.getPointAt(path.pointCount-1).distanceToVector( path.getPointAt(path.pointCount-4)) * smoothFactor : smoothFactor ) );
+				v1.plus(path.getPointAt(path.pointCount-1));
+				path.getPointAt(path.pointCount-2).setValue(v1);
 			}
 			path.setLoop(loop);
 			
