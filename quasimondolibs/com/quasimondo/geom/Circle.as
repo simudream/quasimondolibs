@@ -169,7 +169,7 @@
 				path.addControlPoint( c2.getPlus(c) );
 				path.addPoint( a2.getPlus(c) );
 			}
-			path.deletePointAt(path.count-1);
+			path.deletePointAt(path.pointCount-1);
 			path.setLoop( true );
 			
 			return path;

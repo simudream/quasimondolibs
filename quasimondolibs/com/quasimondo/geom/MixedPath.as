@@ -4,7 +4,7 @@ package com.quasimondo.geom
 	import flash.display.Graphics;
 	import flash.geom.Rectangle;
 
-	public class MixedPath extends GeometricShape implements IIntersectable
+	public class MixedPath extends GeometricShape implements IIntersectable, ICountable
 	{
 		static public const LINEARIZE_APPROXIMATE:int = 0;
 		static public const LINEARIZE_COMPLETE:int = 1;
@@ -161,18 +161,23 @@ package com.quasimondo.geom
 			return isValid;
 		}
 		
-		public function deletePointAt( index:Number ):Boolean
+		public function deletePointAt( index:int ):Boolean
 		{
 			points.splice( index, 1 );
 			return updateSegments();
 		}
 		
-		public function getPointAt( index:Number ):MixedPathPoint
+		public function getMixedPathPointAt( index:int ):MixedPathPoint
 		{
 			return points[ index ];
 		}
 		
-		public function updatePointAt(  index:Number, p:MixedPathPoint ):Boolean
+		public function getPointAt( index:int ):Vector2
+		{
+			return points[ index ];
+		}
+		
+		public function updatePointAt(  index:int, p:MixedPathPoint ):Boolean
 		{
 			if ( index < 0 || index >= points.length ) return false;
 			points[ index ] = p;
@@ -388,7 +393,7 @@ package com.quasimondo.geom
 			return segments.length;
 		}
 		
-		public function get count():int
+		public function get pointCount():int
 		{
 			return points.length;
 		}

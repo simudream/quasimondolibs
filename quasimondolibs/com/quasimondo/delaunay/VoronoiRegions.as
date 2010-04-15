@@ -111,7 +111,7 @@ package com.quasimondo.delaunay
 			
 			for ( var i:* in regions )
 			{
-				if ( VoronoiRegion(regions[i]).polygon.count == 0 )
+				if ( VoronoiRegion(regions[i]).polygon.pointCount == 0 )
 				{
 					VoronoiRegions.deleteRegion( regions[i] );
 					delete regions[regions[i].p];

@@ -10,7 +10,8 @@ package com.quasimondo.geom
 	import flash.geom.Matrix;
 	import flash.geom.Rectangle;
 	
-	public class ConvexPolygon extends GeometricShape implements IIntersectable {
+	public class ConvexPolygon extends GeometricShape implements IIntersectable, ICountable
+	{
 		
 		public static const SMOOTH_PATH_RELATIVE_EDGEWISE:int = 0;
 		public static const SMOOTH_PATH_ABSOLUTE_EDGEWISE:int = 1;
@@ -150,7 +151,7 @@ package com.quasimondo.geom
 		}
 		
 		
-		public function get count():int
+		public function get pointCount():int
 		{
 			if ( dirty )
 			{
@@ -333,7 +334,7 @@ package com.quasimondo.geom
 			var intersectionIndices:Vector.<int> =  new Vector.<int>();
 			var intersection:Vector.<Vector2>;
 			var s:LineSegment;
-			for ( var i:int = 0; i < count; i++ )
+			for ( var i:int = 0; i < pointCount; i++ )
 			{
 				s = getSide( i );
 				intersection = s.getIntersection( l, true, false );
@@ -386,7 +387,7 @@ package com.quasimondo.geom
 				cv.addPoint( Vector2( points[i]) );
 				cv.addPoint( intersections[1] );
 				
-				if ( cv.count > 2 )
+				if ( cv.pointCount > 2 )
 				{
 					result.push( cv );
 				}
@@ -399,7 +400,7 @@ package com.quasimondo.geom
 				}
 				cv.addPoint( Vector2( points[i]) );
 				cv.addPoint( intersections[0] );
-				if ( cv.count > 2 )
+				if ( cv.pointCount > 2 )
 				{
 					result.push( cv );
 				}
@@ -872,7 +873,7 @@ package com.quasimondo.geom
 		{
 			var center:Vector2 = centroid;
 			var bestRadius:Number = getSide(0).distanceToPoint( center );
-			for ( var i:int = 1; i < count; i++ )
+			for ( var i:int = 1; i < pointCount; i++ )
 			{
 				bestRadius = Math.min( bestRadius, getSide(i).distanceToPoint( center ) );
 			}
@@ -893,7 +894,7 @@ package com.quasimondo.geom
 		{
 			var m:Matrix = new Matrix();
 			
-			if ( count < 3 ) return m;
+			if ( pointCount < 3 ) return m;
 			
 			var p:ConvexPolygon = ConvexPolygon(clone());
 			if ( angle != 0 ) p.rotate(-angle)
@@ -1058,7 +1059,7 @@ package com.quasimondo.geom
 				var intersection:Intersection = poly.intersect( this );
 				var insidePoints:Vector.<Vector2> = new Vector.<Vector2>();
 				var point:Vector2;
-				for ( var i:int = poly.count; --i >-1;)
+				for ( var i:int = poly.pointCount; --i >-1;)
 				{
 					if ( isInside( point = poly.getPointAt( i ) ))
 					{

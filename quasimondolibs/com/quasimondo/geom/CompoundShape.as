@@ -4,7 +4,7 @@ package com.quasimondo.geom
 	import flash.display.Shape;
 	import flash.display.Stage;
 
-	public class CompoundShape extends GeometricShape implements IIntersectable
+	public class CompoundShape extends GeometricShape implements IIntersectable, ICountable, IPolygonHelpers
 	{
 		private var shapes:Vector.<GeometricShape>;
 		
@@ -26,7 +26,15 @@ package com.quasimondo.geom
 		
 		public function addShape( shape:GeometricShape ):void
 		{
-			shapes.push( shape );
+			if ( shape is CompoundShape )
+			{
+				for ( var i:int = 0; i < CompoundShape(shape).shapeCount; i++ )
+				{
+					shapes.push( CompoundShape(shape).getShapeAt(i)); 
+				}
+			} else {
+				shapes.push( shape );
+			}
 		}
 		
 		public function clear():void
@@ -34,9 +42,19 @@ package com.quasimondo.geom
 			shapes.length = 0;
 		}
 		
-		public function get count():int
+		public function get shapeCount():int
 		{
 			return shapes.length;
+		}
+		
+		public function get pointCount():int
+		{
+			var c:int = 0;
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				c += ICountable(shapes[i]).pointCount;
+			}
+			return c;
 		}
 		
 		public function getShapeAt( index:int ):GeometricShape
@@ -76,5 +94,66 @@ package com.quasimondo.geom
 		{
 			return Intersection.intersect( this, that );
 		};
+		
+		public function addPointAtClosestSide( p:Vector2 ):void
+		{
+			var closestPoly:Polygon;
+			var closestDistance:Number = Number.MAX_VALUE;
+			
+			for each ( var shape:GeometricShape in shapes )
+			{
+				if ( shape is Polygon )
+				{
+					var d:Number = Polygon(shape).squaredDistanceToPoint(p);
+					if ( d < closestDistance )
+					{
+						closestDistance = d;
+						closestPoly = Polygon(shape);
+					}
+				}
+			}
+			
+			if ( closestPoly != null ) closestPoly.addPointAtClosestSide( p );
+		}
+		
+		public function detangle():void
+		{
+			for each ( var shape:GeometricShape in shapes )
+			{
+				if ( shape is IPolygonHelpers ) IPolygonHelpers(shape).detangle();
+			}
+		}
+		
+		public function getPointAt( index:int ):Vector2
+		{
+			var l:int = pointCount;
+			index = int(((index % l) + l )% l);
+			var c:int = 0;
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				if ( index >= ICountable(shapes[i]).pointCount )
+				{
+					index -= ICountable(shapes[i]).pointCount;
+				} else {
+					return ICountable(shapes[i]).getPointAt( index );
+				}
+			}
+			return null;
+		}
+		
+		override public function clone( deepClone:Boolean = true ):GeometricShape
+		{
+			var shape:CompoundShape = new CompoundShape();
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				shape.addShape( shapes[i].clone( deepClone ) );
+			}
+			return shape;
+		}
+		
+		override public function get type():String
+		{
+			return "CompoundShape";
+		}
 	}
 }

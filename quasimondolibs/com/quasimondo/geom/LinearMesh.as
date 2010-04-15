@@ -37,6 +37,21 @@ package com.quasimondo.geom
 		}
 		
 		
+		public function addVector2( point:Vector2 ):int
+		{
+			var index:int = getPointIndex( point );
+			if ( index != -1 ) return index;
+			
+			if ( freeIndices.length > 0 )
+			{
+				index = freeIndices.pop();
+			} else {
+				index = points.length;
+			}
+			addPoint( index, point );
+			return index;
+		}
+		
 		public function addLineSegment( line:LineSegment ):void
 		{
 			if ( line.length == 0 ) return;
@@ -308,7 +323,7 @@ package com.quasimondo.geom
 		
 		public function addPolygon( poly:Polygon ):void
 		{
-			for ( var i:int = 0; i < poly.count; i++ )
+			for ( var i:int = 0; i < poly.pointCount; i++ )
 			{
 				addLineSegment( poly.getSide( i ) );
 			}
@@ -316,7 +331,7 @@ package com.quasimondo.geom
 		
 		public function addConvexPolygon( poly:ConvexPolygon ):void
 		{
-			for ( var i:int = 0; i < poly.count; i++ )
+			for ( var i:int = 0; i < poly.pointCount; i++ )
 			{
 				addLineSegment( poly.getSide( i ) );
 			}
