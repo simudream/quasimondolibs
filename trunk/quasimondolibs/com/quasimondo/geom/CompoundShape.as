@@ -124,6 +124,14 @@ package com.quasimondo.geom
 			}
 		}
 		
+		public function fractalize( factor:Number = 0.5, range:Number = 0.5, minSegmentLength:Number = 2, iterations:int = 1 ):void
+		{
+			for each ( var shape:GeometricShape in shapes )
+			{
+				if ( shape is IPolygonHelpers ) IPolygonHelpers(shape).fractalize(factor,range,minSegmentLength,iterations);
+			}
+		}
+		
 		public function getPointAt( index:int ):Vector2
 		{
 			var l:int = pointCount;

@@ -184,6 +184,34 @@ package com.quasimondo.geom
 			return updateSegments();
 		}
 		
+		public function get centroid():Vector2
+		{
+			var sx:Number = 0;
+			var sy:Number = 0;
+			var a:Number = 0;
+			
+			var p1:Vector2;
+			var p2:Vector2;
+			var f:Number;
+			
+			for ( var i:int = 0; i< points.length; i++ )
+			{
+				if ( !points[i].isControlPoint && !points[int((i+1) % points.length)].isControlPoint )
+				{
+					p1 = points[i];
+					p2 = points[int((i+1) % points.length)];
+					a += ( f = p1.x * p2.y - p2.x * p1.y );
+					sx += (p1.x + p2.x) * f;
+					sy += (p1.y + p2.y) * f;
+				}
+			}
+			
+			f = 1 / ( 3 * a );
+			
+			
+			return new Vector2( sx * f, sy * f );
+		}
+		
 		public function updatePoint( ID:String, p:MixedPathPoint ):Boolean
 		{
 			var point:MixedPathPoint = getPointByID( ID );
@@ -556,6 +584,17 @@ package com.quasimondo.geom
 			{
 				point.plus( offset );
 			}
+			return this;
+		}
+		
+		override public function rotate( angle:Number, center:Vector2 = null ):GeometricShape
+		{
+			if ( center == null ) center = centroid;
+			for each ( var p:Vector2 in points )
+			{
+				p.rotateAround(angle, center );
+			}
+			dirty = true;
 			return this;
 		}
 		
