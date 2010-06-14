@@ -81,6 +81,11 @@
 			if (circle.r <= r ) return false;
 			return circle.c.squaredDistanceToVector(c)<(circle.r-r)*(circle.r-r);
 		}
+		
+		public function circleIsInsideOrIntersects ( circle:Circle ):Boolean
+		{
+			return circle.c.squaredDistanceToVector(c)<(circle.r+r)*(circle.r+r);
+		}
 	
 		public function isIdentical( c2:Circle ):Boolean
 		{

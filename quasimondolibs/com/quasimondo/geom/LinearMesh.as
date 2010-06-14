@@ -978,7 +978,7 @@ package com.quasimondo.geom
 			
 			while ( nextIndex <  points.length )
 			{
-				if ( cc[nextIndex] != 2 && openEdges[nextIndex].length > 0 )
+				if ( cc[nextIndex] != 2 && openEdges[nextIndex] != null && openEdges[nextIndex].length > 0 )
 				{
 					currentPath = new LinearPath();
 					currentPath.addPoint( points[nextIndex] );
@@ -1021,7 +1021,7 @@ package com.quasimondo.geom
 				nextIndex = 0;
 				while ( nextIndex < points.length )
 				{
-					if (  openEdges[nextIndex].length > 0 )
+					if ( openEdges[nextIndex] != null && openEdges[nextIndex].length > 0 )
 					{
 						currentPath = new LinearPath();
 						currentPath.addPoint( points[nextIndex] );

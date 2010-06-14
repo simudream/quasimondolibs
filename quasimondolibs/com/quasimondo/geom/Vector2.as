@@ -39,6 +39,10 @@ package com.quasimondo.geom
 			{
 				x = Number(value1);
 				y = Number(value2);
+				if ( x == Infinity || y == Infinity )
+				{
+					throw new Error( "Infinity: "+value1+" / "+value2);
+				}
 			} else if ( value1 == null && value2 == null  )
 			{
 				x = y = 0;
@@ -600,6 +604,11 @@ package com.quasimondo.geom
 		public function toSVG():String
 		{
 			return x + " "+ y + " ";
+		}
+		
+		public function toPoint():Point
+		{
+			return new Point(x,y);
 		}
 	}
 }

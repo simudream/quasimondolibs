@@ -79,7 +79,7 @@
 		
 		public function rotate( angle:Number, center:Vector2 = null ):GeometricShape
 		{
-			throw new Error("Must override translate!");
+			throw new Error("Must override rotate!");
 			return null;
 		}
 		

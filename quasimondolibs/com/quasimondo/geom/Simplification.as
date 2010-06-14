@@ -56,6 +56,11 @@ package com.quasimondo.geom
 		{
 			return Polygon.fromVector( simplifyPath( polygon.getCopyOfPoints(), epsilon), clonePoints );
 		}
-
+		/*
+		public function simplifyCompoundShape( polygon:CompoundShape, epsilon:Number, clonePoints:Boolean = true):CompoundShape
+		{
+			return Polygon.fromVector( simplifyPath( polygon.getCopyOfPoints(), epsilon), clonePoints );
+		}
+		*/
 	}
 }

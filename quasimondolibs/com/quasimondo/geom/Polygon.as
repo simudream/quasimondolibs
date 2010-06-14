@@ -102,6 +102,34 @@ package com.quasimondo.geom
 			return Polygon.fromVector( points );
 		}
 		
+		public static function getRegularCenteredPolygon( radius:Number, sides:int, center:Vector2 = null, rotation:Number = 0 ):Polygon
+		{
+			var angle:Number  = 2 * Math.PI / sides;
+			if ( center == null ) center = new Vector2();
+			
+			var points:Vector.<Vector2> = new Vector.<Vector2>();
+			for ( var i:int = 0; i< sides; i++ )
+			{
+				points.push( new Vector2( center.x + radius * Math.cos( rotation + i * angle ),center.y + radius * Math.sin( rotation + i * angle )  ) );
+			}	
+			return Polygon.fromVector( points );
+		}
+		
+		public static function getCenteredStar( outerRadius:Number, innerRadius:Number, spokes:int, center:Vector2 = null, rotation:Number = 0 ):Polygon
+		{
+			var sides:int = spokes * 2;
+			var angle:Number  = 2 * Math.PI / sides;
+			if ( center == null ) center = new Vector2();
+			
+			var points:Vector.<Vector2> = new Vector.<Vector2>();
+			for ( var i:int = 0; i< sides; i++ )
+			{
+				var radius:Number = ( i % 2 == 0 ? outerRadius : innerRadius );
+				points.push( new Vector2( center.x + radius * Math.cos( rotation + i * angle ),center.y + radius * Math.sin( rotation + i * angle )  ) );
+			}	
+			return Polygon.fromVector( points );
+		}
+		
 		public function Polygon()
 		{
 			points = new Vector.<Vector2>();
@@ -1126,6 +1154,11 @@ package com.quasimondo.geom
 			return path;	
 		}
 		
+		public function getSmoothPath( factor:Number, mode:int = 0):MixedPath
+		{
+			return LinearPath.fromVector( points, true ).getSmoothPath( factor, mode );
+		}
+		
 		
 		public function getScribblePath( minFactor:Number, maxFactor:Number ):MixedPath
 		{
@@ -1259,6 +1292,17 @@ package com.quasimondo.geom
 			return this;
 		}
 		
+		override public function rotate( angle:Number, center:Vector2 = null ):GeometricShape
+		{
+			if ( center == null ) center = centroid;
+			for each ( var p:Vector2 in points )
+			{
+				p.rotateAround(angle, center );
+			}
+			dirty = true;
+			return this;
+		}
+		
 		public function getBoundingCircle( method:int = BoundingCircle.BOUNDINGCIRCLE_EXACT):Circle
 		{
 			switch ( method )
@@ -1379,6 +1423,123 @@ package com.quasimondo.geom
 		{
 			return Intersection.intersect( this, that );
 		};
+		
+		public function fractalize( factor:Number = 0.5, range:Number = 0.5, minSegmentLength:Number = 2, iterations:int = 1 ):void
+		{
+			for ( var j:int = 0; j < iterations; j++)
+			{
+				for ( var i:int = 0; i < points.length; i++ )
+				{
+					var p1:Vector2 = points[i];
+					var p2:Vector2 = points[int((i+1)%points.length)];
+					var l:Number = p1.distanceToVector( p2 );
+					if ( l >= minSegmentLength )
+					{
+						var m:Vector2 = p1.getLerp( p2, 0.5 + Math.random() * range - range * 0.5 );
+						var n:Vector2 = p1.getMinus(p2);
+						n.multiply( Math.random() * factor ).rotateBy( Math.PI * 0.5 );
+						if ( Math.random() < 0.5 ) n.multiply(-1);
+						m.plus( n );
+						addPointAt( i+1, m );
+						i++;
+					}
+				}
+			}
+			detangle();
+		}
+		
+		
+		public function simplify( threshold:Number ):void
+		{
+			var run:Boolean = true;
+			var i1:int = 0;
+			var bestLineRun:int;
+			var lineOK:Boolean;
+			var i2:int;
+			var reducedPoints:Vector.<Vector2> = new Vector.<Vector2>();
+			
+			var d:Number, x:Number, y:Number, dx:Number, dy:Number;
+			var px:Number, py:Number, p1x:Number, p2x:Number, p1y:Number, p2y:Number;
+			var slope1:Number, slope2:Number;
+			var p:Vector2, p1:Vector2, p2:Vector2;
+			var i:int;
+			var count:int = points.length;
+			
+			p1 = points[ 0 ] ;
+			p1x = p1.x;
+			p1y = p1.y;
+			
+			while (run)
+			{
+				bestLineRun = 1;
+				lineOK = true;
+				while (lineOK)
+				{
+					bestLineRun++;
+					i2 = i1 + bestLineRun;
+					if ( i2 < count + 1 )
+					{
+						p2 = points[ int( i2 % count )];
+						p2x = p2.x;
+						p2y = p2.y;
+						
+						if ( p1x != p2x)
+						{
+							slope1 = (p1y - p2y) / ( p1x - p2x );
+							slope2 = - 1 / slope1;
+						}
+						
+						for ( i = i1 + 1; i < i2;i++)
+						{
+							p = points[ int( i % count )];			  
+							px = p.x;
+							py = p.y;
+							
+							if ( p1x == p2x)
+							{
+								x = p1x;
+								y = py;
+							} else if ( p1y == p2y)
+							{
+								x = px;
+								y = p1y;
+							} else
+							{
+								x = ( -1 * slope2 * px + py - p1y + slope1 * p1x) / ( slope1 - slope2 );
+								y = slope1 * ( x - p1x ) + p1y;
+							}
+							
+							dx = x - px;
+							dy = y - py;
+							
+							d = dx * dx + dy * dy;			  
+							
+							if ( d > threshold)
+							{
+								lineOK = false;
+								break;
+							}
+						}
+						
+					} else {
+						lineOK = false;
+					}
+				}
+				bestLineRun--;
+				reducedPoints.push( p1 );
+				i1 += bestLineRun;
+				
+				p1 = points[ int( i1 % count )] ;
+				p1x = p1.x;
+				p1y = p1.y;
+				
+				if (i1 >= count ) run = false;
+			}
+			
+			points = reducedPoints.concat();
+			dirty = true;	
+		}
+		
 		
 		
 		override public function get type():String

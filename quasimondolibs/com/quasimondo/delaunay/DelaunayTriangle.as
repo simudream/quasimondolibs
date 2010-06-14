@@ -1,10 +1,11 @@
 package com.quasimondo.delaunay
 {
 	
-	import flash.display.Graphics;
 	import com.quasimondo.geom.ConvexPolygon;
 	import com.quasimondo.geom.Triangle;
 	import com.quasimondo.geom.Vector2;
+	
+	import flash.display.Graphics;
 	
 	public class DelaunayTriangle
 	{
@@ -124,9 +125,9 @@ package com.quasimondo.delaunay
 				g.lineTo( edge.p1.x,edge.p1.y);
 		  }
 		  
-		  public function toTriangle():Triangle
+		  public function toTriangle( ):Triangle
 		  {
-		  	return new Triangle( new Vector2( edge.p1.x,edge.p1.y ), new Vector2( edge.nextE.p2.x,edge.nextE.p2.y ), new Vector2( edge.p2.x, edge.p2.y) );
+			  return new Triangle( new Vector2( edge.p1.x,edge.p1.y ), new Vector2( edge.nextE.p2.x,edge.nextE.p2.y ), new Vector2( edge.p2.x, edge.p2.y) );
 		  }
 		  
 		  public function toConvexPolygon():ConvexPolygon

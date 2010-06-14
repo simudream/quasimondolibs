@@ -347,7 +347,11 @@
 		
 		public function getSmoothPath( factor:Number, mode:int = 0):MixedPath
 		{
-			
+			if ( mode < 0 || mode > 3 )
+			{
+				throw( new Error("getSmoothPath: illegal mode "+mode) );
+				return;
+			}
 			var segments:Array = [];
 			var s:LineSegment;
 			var l:Number = Number.MAX_VALUE;;
