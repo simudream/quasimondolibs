@@ -1,4 +1,17 @@
-﻿	package com.quasimondo.geom
+﻿/*
+
+	Boolean Shape Operation  Class v1.0
+
+	released under MIT License (X11)
+	http://www.opensource.org/licenses/mit-license.php
+
+	Author: Mario Klingemann
+	http://www.quasimondo.com
+	
+	Copyright (c) 2006-2010 Mario Klingemann
+*/
+
+	package com.quasimondo.geom
 	{
 	
 		public class BooleanShapeOperation 
