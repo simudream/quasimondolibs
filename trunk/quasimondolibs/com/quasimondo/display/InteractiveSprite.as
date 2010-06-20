@@ -13,6 +13,7 @@ package com.quasimondo.display
 		
 		protected var shiftIsDown:Boolean = false;
 		protected var ctrlIsDown:Boolean = false;
+		protected var mouseIsDown:Boolean = false;
 		protected const g:Graphics = graphics;
 		
 		public function InteractiveSprite()
@@ -24,15 +25,38 @@ package com.quasimondo.display
 		protected function setup( event:Event):void
 		{
 			removeEventListener( Event.ADDED_TO_STAGE, setup );
+			
+			addListeners();
 			stage.scaleMode = "noScale";	
 			stage.align = "TL";	
+			
+			init();
+		}
+		
+		private function addListeners():void
+		{
+			addEventListener( Event.REMOVED_FROM_STAGE, removeListeners );
+			
 			stage.addEventListener( Event.ENTER_FRAME, onEnterFrame );
 			stage.addEventListener( KeyboardEvent.KEY_DOWN, _onKeyDown );
 			stage.addEventListener( KeyboardEvent.KEY_UP, _onKeyUp );
-			stage.addEventListener( MouseEvent.MOUSE_DOWN, onMouseDown );
-			stage.addEventListener( MouseEvent.MOUSE_UP, onMouseUp );
+			stage.addEventListener( MouseEvent.MOUSE_DOWN, _onMouseDown );
+			stage.addEventListener( MouseEvent.MOUSE_UP, _onMouseUp );
 			stage.addEventListener( MouseEvent.MOUSE_MOVE, onMouseMove );
-			init();
+			stage.addEventListener( MouseEvent.MOUSE_WHEEL, onMouseWheel );
+		}
+		
+		private function removeListeners( event:Event ):void
+		{
+			removeEventListener( Event.REMOVED_FROM_STAGE, removeListeners );
+			
+			stage.addEventListener( Event.ENTER_FRAME, onEnterFrame );
+			stage.addEventListener( KeyboardEvent.KEY_DOWN, _onKeyDown );
+			stage.addEventListener( KeyboardEvent.KEY_UP, _onKeyUp );
+			stage.addEventListener( MouseEvent.MOUSE_DOWN, _onMouseDown );
+			stage.addEventListener( MouseEvent.MOUSE_UP, _onMouseUp );
+			stage.addEventListener( MouseEvent.MOUSE_MOVE, onMouseMove );
+			stage.addEventListener( MouseEvent.MOUSE_WHEEL, onMouseWheel );
 		}
 		
 		public function init():void
@@ -48,6 +72,7 @@ package com.quasimondo.display
 		{
 			if ( event.keyCode == Keyboard.SHIFT ) shiftIsDown = true;
 			if ( event.keyCode == Keyboard.CONTROL ) ctrlIsDown = true;
+			
 			onKeyDown( event );
 		}
 		
@@ -67,9 +92,21 @@ package com.quasimondo.display
 			
 		}
 		
+		public function _onMouseDown( event:MouseEvent ):void
+		{
+			mouseIsDown = true;
+			onMouseDown( event );
+		}
+		
 		public function onMouseDown( event:MouseEvent ):void
 		{
 			
+		}
+		
+		public function _onMouseUp( event:MouseEvent ):void
+		{
+			mouseIsDown = false;
+			onMouseUp( event );
 		}
 		
 		public function onMouseUp( event:MouseEvent ):void
@@ -78,6 +115,11 @@ package com.quasimondo.display
 		}
 		
 		public function onMouseMove( event:MouseEvent ):void
+		{
+			
+		}
+		
+		public function onMouseWheel( event:MouseEvent ):void
 		{
 			
 		}
