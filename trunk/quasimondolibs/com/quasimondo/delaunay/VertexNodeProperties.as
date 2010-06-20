@@ -35,6 +35,15 @@ package com.quasimondo.delaunay
 		{
 			return false
 		}
+		
+		override public function clone( replaceNode:Boolean = true, newNode:DelaunayNode = null ):DelaunayNodeProperties
+		{
+			var p:VertexNodeProperties = new VertexNodeProperties();
+			p.id = id;
+			p.vertex = vertex;
+			if ( replaceNode ) p.node = newNode;
+			return p;
+		}
 	  	
     	
     }

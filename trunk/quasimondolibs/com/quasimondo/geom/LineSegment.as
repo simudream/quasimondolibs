@@ -230,7 +230,7 @@ package com.quasimondo.geom
 			return ( p1.distanceToVector( pt ) + p2.distanceToVector( pt ) ) - length < ZERO_DISTANCE; 
 		}
 	
-		public function getClosestPoint( pt:Vector2, noLimit:Boolean = false ):Vector2
+		public function getClosestPointOnLine( pt:Vector2 ):Vector2
 		{
 			var Dx:Number = p2.x - p1.x;
 			var Dy:Number = p2.y - p1.y;
@@ -240,13 +240,33 @@ package com.quasimondo.geom
 			
 			var t:Number = YmP0x * Dx + YmP0y * Dy;
 			
-			if ( !noLimit && t <= 0) 
+			var DdD:Number = Dx*Dx + Dy*Dy;
+			
+			if (DdD == 0) 
+			{
+				return new Vector2( p1 );
+			}
+			
+			return p1.getLerp( p2, t / DdD );
+		};
+		
+		override public function getClosestPoint( pt:Vector2 ):Vector2
+		{
+			var Dx:Number = p2.x - p1.x;
+			var Dy:Number = p2.y - p1.y;
+			
+			var YmP0x:Number = pt.x - p1.x;
+			var YmP0y:Number = pt.y - p1.y;
+			
+			var t:Number = YmP0x * Dx + YmP0y * Dy;
+			
+			if ( t <= 0) 
 			{
 				return new Vector2( p1 );
 			}
 			
 			var DdD:Number = Dx*Dx + Dy*Dy;
-			if ( !noLimit && t >= DdD ) 
+			if ( t >= DdD ) 
 			{
 				return new Vector2( p2 );
 			}
@@ -280,7 +300,7 @@ package com.quasimondo.geom
 		
 		public function getOrth( p:Vector2, lengthLeft:Number = 1, lengthRight:Number = 1 ):LineSegment
 		{
-			var cp:Vector2 = getClosestPoint( p, true );
+			var cp:Vector2 = getClosestPointOnLine( p );
 			if ( p.squaredDistanceToVector(cp) > ZERO_DISTANCE )
 			{
 				p = cp;

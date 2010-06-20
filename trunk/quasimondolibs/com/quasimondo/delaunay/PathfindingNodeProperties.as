@@ -57,5 +57,14 @@ package com.quasimondo.delaunay
 			//return node.distanceTo( otherNode );// * (1+Math.random())
 		}
     	
+		override public function clone( replaceNode:Boolean = true, newNode:DelaunayNode = null ):DelaunayNodeProperties
+		{
+			var p:PathfindingNodeProperties = new PathfindingNodeProperties( id );
+			p.distance = distance;
+			p.marked = marked;
+			p.prev = prev;
+			if ( replaceNode ) p.node = newNode;
+			return p;
+		}
     }
 }

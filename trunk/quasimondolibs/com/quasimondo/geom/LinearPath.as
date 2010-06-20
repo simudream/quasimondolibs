@@ -2,6 +2,8 @@
 {
 	import flash.display.Graphics;
 	
+	import mx.effects.easing.Linear;
+	
 
 	public class LinearPath extends GeometricShape
 	{
@@ -18,8 +20,8 @@
 		private var distances:Vector.<Number>;
 		private var totalLength:Number;
 		
-		private var t_cache:Array = [];
-		private var l_cache:Array = [];
+		private var t_cache:Vector.<int>;
+		private var l_cache:Vector.<Number>;
 		
 		private const CACHE_SIZE:Number = 200;
 		
@@ -152,8 +154,8 @@
 			var l:Number, f:Number;
 			var dl:int = distances.length;
 			
-			t_cache = [];
-			l_cache = [];
+			t_cache = new Vector.<int>;
+			l_cache = new Vector.<Number>;
 			l = 0;
 			
 			var t:int = 0;
@@ -298,12 +300,33 @@
 			return Vector2.fromAngle( l.angle + Math.PI * 0.5, 1 );
 		}
 		
+		
+		public function equalize( segmentLength:Number, mode:int = 0 ):void
+		{
+			 var mp:MixedPath = MixedPath.fromLinearPath( this, false );
+			 var lp:LinearPath = ( mp.length == 0 || !mp.isValidPath() ? new LinearPath() : mp.toLinearPath( segmentLength, mode ) );
+			 __points = lp.points;
+			 distances = lp.distances;
+			 totalLength = lp.totalLength;
+			 t_cache = lp.t_cache;
+			 l_cache = lp.l_cache;
+			 dirty = lp.dirty;
+		}
+		
+		public function getEqualizedPath( segmentLength:Number, mode:int = 0, clonePoints:Boolean = true ):LinearPath
+		{
+			var mp:MixedPath = MixedPath.fromLinearPath( this, clonePoints );
+			return mp.length == 0 || !mp.isValidPath() ? new LinearPath() : mp.toLinearPath( segmentLength, mode );
+		}
+		
+		
+		
 		override public function get length():Number
 		{
 			return totalLength;
 		}
 		
-		public function get count():int
+		public function get pointCount():int
 		{
 			return __points.length;
 		}

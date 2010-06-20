@@ -34,10 +34,16 @@ package com.quasimondo.delaunay
   		public function DelaunayTriangle( e1:DelaunayEdge, e2:DelaunayEdge, e3:DelaunayEdge, edges:DelaunayEdges = null )
 		{
 		    update(e1,e2,e3,edges);
-		 }
-		 
-		 public function update( e1:DelaunayEdge, e2:DelaunayEdge, e3:DelaunayEdge, edges:DelaunayEdges = null):void
-		  {
+		}
+		
+		public function reset():void
+		{
+			edge = null;
+			next = null;
+		}
+		
+		public function update( e1:DelaunayEdge, e2:DelaunayEdge, e3:DelaunayEdge, edges:DelaunayEdges = null):void
+		{
 		    edge = e1;
 		    e1.nextE = e2;
 		    e2.nextE = e3;
@@ -117,12 +123,15 @@ package com.quasimondo.delaunay
 		    g.drawCircle( c_cx-c_r, c_cy-c_r, 2.0*c_r );
 		  }
 		  
-		  public function drawVertex( g:Graphics ):void
+		  public function drawVertex( g:Graphics, ignoreOuterTriangle:Boolean = true ):void
 		  {
-				g.moveTo( edge.p1.x,edge.p1.y );
-				g.lineTo( edge.nextE.p2.x,edge.nextE.p2.y);
-				g.lineTo( edge.p2.x, edge.p2.y);
-				g.lineTo( edge.p1.x,edge.p1.y);
+			  	if ( !ignoreOuterTriangle || (!(edge.p2.data is BoundingTriangleNodeProperties) && !(edge.p1.data is BoundingTriangleNodeProperties) && !(edge.nextE.p2.data is BoundingTriangleNodeProperties)))
+				{
+					g.moveTo( edge.p1.x,edge.p1.y );
+					g.lineTo( edge.nextE.p2.x,edge.nextE.p2.y);
+					g.lineTo( edge.p2.x, edge.p2.y);
+					g.lineTo( edge.p1.x,edge.p1.y);
+				}
 		  }
 		  
 		  public function toTriangle( ):Triangle

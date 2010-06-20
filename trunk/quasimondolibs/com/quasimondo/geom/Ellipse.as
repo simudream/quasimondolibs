@@ -137,7 +137,7 @@
 		};
 		
 		//
-		public function getClosestPoint( point:Vector2):Vector2 
+		override public function getClosestPoint( point:Vector2):Vector2 
 		{
 			return c.getPlus(calculateClosestPoint(point));
 		};

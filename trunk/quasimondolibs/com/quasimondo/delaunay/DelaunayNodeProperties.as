@@ -6,10 +6,12 @@ package com.quasimondo.delaunay
 	public class DelaunayNodeProperties
 	{
 		public var node:DelaunayNode;
+		public var relaxable:Boolean = true;
 		
 		
-		public function DelaunayNodeProperties():void
+		public function DelaunayNodeProperties( relaxable:Boolean = true):void
  		{
+			this.relaxable = relaxable;
     	}
     	
     	public function offset( dx:Number, dy:Number ):void
@@ -33,6 +35,12 @@ package com.quasimondo.delaunay
 			return false
 		}
 	  	
+		public function clone( replaceNode:Boolean = true, newNode:DelaunayNode = null ):DelaunayNodeProperties
+		{
+			var p:DelaunayNodeProperties = new DelaunayNodeProperties();
+			if ( replaceNode ) p.node = newNode;
+			return p;
+		}
     	
     }
 }

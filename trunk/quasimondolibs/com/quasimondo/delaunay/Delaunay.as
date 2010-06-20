@@ -14,13 +14,17 @@ package com.quasimondo.delaunay
 {
 	
 	
+	import com.quasimondo.geom.ConvexPolygon;
+	import com.quasimondo.geom.Intersection;
+	import com.quasimondo.geom.LineSegment;
+	import com.quasimondo.geom.Polygon;
+	import com.quasimondo.geom.Triangle;
+	import com.quasimondo.geom.Vector2;
+	
 	import flash.display.BitmapData;
 	import flash.display.Graphics;
 	import flash.geom.Rectangle;
 	import flash.utils.Dictionary;
-	import com.quasimondo.geom.ConvexPolygon;
-	import com.quasimondo.geom.LineSegment;
-	import com.quasimondo.geom.Triangle;
 	
 	public class Delaunay
 	{
@@ -33,7 +37,7 @@ package com.quasimondo.delaunay
 		
 		private var hullStart:DelaunayEdge;    
 		private var actE:DelaunayEdge;
-		private var regionsReady:Boolean ;
+		private var regionsReady:Boolean;
 		
 		private var min_x:Number;
 		private var min_y:Number;
@@ -41,9 +45,9 @@ package com.quasimondo.delaunay
 		private var max_y:Number;
 		private var ill_defined:Boolean;
 		
+		private var _boundingNodes:Vector.<DelaunayNode>;
+		
 		private var viewport:Rectangle; 
-		// [ArrayElementType("Edge")] 
-		//private var index:Array;
 		
 		private var flipCount:int=0;
 		
@@ -53,6 +57,7 @@ package com.quasimondo.delaunay
 			nodes = new DelaunayNodes();
 			edges = new DelaunayEdges();
 			regions = new VoronoiRegions();
+			_boundingNodes = new Vector.<DelaunayNode>();
 			
 			regionsReady = false;
 			ill_defined = true;
@@ -71,14 +76,17 @@ package com.quasimondo.delaunay
 			
 			for ( var i:int = 0; i < 3; i++ )
 			{
-				insertXY( center_x + radius * Math.cos( i * 2 * Math.PI / 3 ) , center_y + radius * Math.sin( i * 2 * Math.PI / 3 ) );
+				insertXY( center_x + radius * Math.cos( i * 2 * Math.PI / 3 ) , center_y + radius * Math.sin( i * 2 * Math.PI / 3 ), new BoundingTriangleNodeProperties() );
 			}
 			
 		}
 		
 		public function clear():void
 		{
+			_boundingNodes.length = 0;
 			flipCount=0;
+			hullStart = null;
+			actE = null;
 			nodes.removeAllElements();
 			edges.removeAllElements();
 			triangles.removeAllElements();
@@ -90,7 +98,12 @@ package com.quasimondo.delaunay
 		
 		public function insertXY( px:Number, py:Number, data:DelaunayNodeProperties = null):void
 		{
-			insertNode( DelaunayNodes.getNode( px, py, data  ) );
+			insertNode(DelaunayNodes.getNode( px, py, data  ) );
+		} 
+		
+		public function insertVector2( v:Vector2, data:DelaunayNodeProperties = null):void
+		{
+			insertNode(DelaunayNodes.getNode( v.x, v.y, data  ) );
 		} 
 		
 		public function insertNode( nd:DelaunayNode ):void
@@ -170,6 +183,11 @@ package com.quasimondo.delaunay
 					trace( "could not insert node! expandHull failed" );   
 					nodes.deleteElement(nd); 
 				} // nd is outside convex hull
+			
+			if ( nd.data is BoundingTriangleNodeProperties )
+			{
+				_boundingNodes.push( nd );
+			}
 		}
 		
 		private function makeFirstTriangle( ):Boolean
@@ -206,6 +224,22 @@ package com.quasimondo.delaunay
 			e3.nextH = e1;
 			hullStart = e1;
 			triangles.addElement(DelaunayTriangles.getTriangle(e1,e2,e3,edges));
+			
+			if ( p1.data is BoundingTriangleNodeProperties )
+			{
+				_boundingNodes.push( p1 );
+			}
+			if ( p2.data is BoundingTriangleNodeProperties )
+			{
+				_boundingNodes.push( p2 );
+			}
+			if ( p3.data is BoundingTriangleNodeProperties )
+			{
+				_boundingNodes.push( p3 );
+			}
+			
+			
+			
 			return true;
 		}
 		
@@ -656,7 +690,7 @@ package com.quasimondo.delaunay
 			triangles.drawCircles(g);
 		}
 		
-		public function drawVoronoiDiagram( g:Graphics ):void
+		public function drawVoronoiDiagram( g:Graphics, ignoreOuterRegions:Boolean = true ):void
 		{
 			edges.drawVoronoi(g);
 		}
@@ -668,10 +702,10 @@ package com.quasimondo.delaunay
 			
 		}
 		
-		public function getVoronoiRegions():Vector.<VoronoiRegion>
+		public function getVoronoiRegions( ignoreOuterRegions:Boolean = true ):Vector.<VoronoiRegion>
 		{
 			if ( !regionsReady) updateRegions();
-			return regions.getRegions();
+			return regions.getRegions( ignoreOuterRegions );
 		}
 		
 		public function getVoronoiLines():Vector.<LineSegment>
@@ -685,25 +719,107 @@ package com.quasimondo.delaunay
 			return regions.getConvexPolygons( clone );
 		}
 		
-		public function getVertices():Vector.<DelaunayTriangle>
+		public function getVertices( ignoreOuterVertices:Boolean = true ):Vector.<DelaunayTriangle>
 		{
 			return triangles.getVertices();
 		}
 		
-		public function getEdges():Vector.<DelaunayEdge>
+		public function getEdges( ignoreOuterEdges:Boolean = true ):Vector.<DelaunayEdge>
 		{
-			return edges.getEdges();
+			return edges.getEdges( ignoreOuterEdges );
 		}
 		
-		public function getTriangles():Vector.<Triangle>
+		public function getTriangles( ignoreOuterTriangles:Boolean = true ):Vector.<Triangle>
 		{
 			return triangles.getTriangles();
 		}
 		
-		public function drawVertices( g:Graphics ):void
+		public function drawVertices( g:Graphics, ignoreOuterTriangle:Boolean = true ):void
 		{
-			triangles.drawVertex(g);
+			triangles.drawVertex(g, ignoreOuterTriangle );
+		}
+		
+		public function getHull( ignoreOuterTriangle:Boolean = true ):ConvexPolygon
+		{
+			return ConvexPolygon.fromVector( nodes.getVectors( ignoreOuterTriangle ) ); 
+		}
+		
+		public function relaxVoronoi( minOffset:Number = 1, constrain:Polygon = null ):Boolean
+		{
+			var squaredDistance:Number = minOffset * minOffset;
+			var regions:Vector.<VoronoiRegion> = getVoronoiRegions();
+			var newCenters:Vector.<Vector2> = new Vector.<Vector2>();
+			var relaxable:Vector.<Boolean> = new Vector.<Boolean>();
+			if ( constrain == null ) constrain = getHull().toPolygon();
+			var changed:Boolean = false;
+			var center:Vector2 = new Vector2();
+			var centroid:Vector2;
 			
+			for each ( var region:VoronoiRegion in regions )
+			{
+				center.x = region.p.x;
+				center.y = region.p.y;
+				centroid = region.polygon.centroid;
+				if (  region.p.data.relaxable == true && centroid.distanceToVector( center ) > squaredDistance )
+				{
+					if ( constrain.hasPoint( center ))
+					{
+						centroid = constrain.getClosestPoint( centroid );
+					}
+					
+					if ( !constrain.isInside( centroid, true ) )
+					{
+						centroid = constrain.getClosestPoint( centroid );
+						/*
+						var intersection:Intersection = new LineSegment( center, centroid ).intersect( constrain );
+						if ( intersection.points.length > 0 )
+						{
+							centroid = intersection.points[0]
+						} else {
+							
+							centroid = constrain.getClosestPoint( centroid );
+						}
+						*/
+					}
+					if ( centroid.distanceToVector( center ) > squaredDistance ) changed = true;
+					region.p.x = centroid.x;
+					region.p.y = centroid.y;
+					
+				} 
+				if ( !(region.p.data is BoundingTriangleNodeProperties) )
+				{
+					newCenters.push( new Vector2( region.p.x, region.p.y ) );
+					relaxable.push( region.p.data.relaxable );
+				}
+			}
+			if ( changed )
+			{
+				var boundingNodes:Vector.<DelaunayNode> = getBoundingNodes();
+				
+				var bounds:Vector.<Vector2> = new Vector.<Vector2>();
+				for ( var i:int = 0; i < boundingNodes.length; i++ )
+				{
+					bounds.push( new Vector2( boundingNodes[i].x, boundingNodes[i].y ) );
+				}
+				
+				clear();
+				
+				for (  i = 0; i < bounds.length; i++ )
+				{
+					insertXY( bounds[i].x, bounds[i].y, new BoundingTriangleNodeProperties() );
+				}
+				
+				for ( i = 0; i < newCenters.length; i++ )
+				{
+					insertXY( newCenters[i].x, newCenters[i].y, new DelaunayColorNodeProperties(0xffff0000, relaxable[i]) );
+				}
+			}
+			return changed;
+		}
+		
+		public function getBoundingNodes():Vector.<DelaunayNode>
+		{
+			return _boundingNodes.concat();
 		}
 	}
 }

@@ -9,5 +9,12 @@ package com.quasimondo.delaunay
 		{
 			this.pixel = pixel;
 		}
+		
+		override public function clone( replaceNode:Boolean = true, newNode:DelaunayNode = null ):DelaunayNodeProperties
+		{
+			var p:DelaunayPixelNodeProperties = new DelaunayPixelNodeProperties( pixel );
+			if ( replaceNode ) p.node = newNode;
+			return p;
+		}
 	}
 }

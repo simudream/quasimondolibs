@@ -11,13 +11,12 @@
 	Copyright (c) 2006-2010 Mario Klingemann
 */
 
-
 package com.quasimondo.geom
 {
 	import com.quasimondo.geom.pointStructures.BalancingKDTree;
 	import com.quasimondo.geom.pointStructures.KDTreeNode;
-	import com.signalsondisplay.structs.graphs.Graph;
-	import com.signalsondisplay.structs.graphs.Vertex;
+	import com.signalsondisplay.datastructs.graphs.Graph;
+	import com.signalsondisplay.datastructs.graphs.Vertex;
 	
 	import flash.display.Graphics;
 	import flash.display.Sprite;
@@ -340,6 +339,14 @@ package com.quasimondo.geom
 			for ( var i:int = 0; i < poly.pointCount; i++ )
 			{
 				addLineSegment( poly.getSide( i ) );
+			}
+		}
+		
+		public function addLinearPath( path:LinearPath ):void
+		{
+			for ( var i:int = 0; i < path.pointCount-1; i++ )
+			{
+				addLineSegment( path.getSegment( i ) );
 			}
 		}
 		
@@ -1077,6 +1084,16 @@ package com.quasimondo.geom
 			}
 			
 			return result;
+		}
+		
+		public function clone():LinearMesh
+		{
+			var lm:LinearMesh = new LinearMesh();
+			for each ( var l:LineSegment in edges )
+			{
+				lm.addLineSegment( LineSegment(l.clone()) );
+			}
+			return lm;
 		}
 		
 		

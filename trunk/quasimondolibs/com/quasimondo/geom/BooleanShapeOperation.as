@@ -537,7 +537,7 @@
 					points = Polygon(p1).getCopyOfPoints();
 				} else if ( p1 is CompoundShape )
 				{
-					for ( var i:int = 0; i < CompoundShape(p1).shapeCount; i++ )
+					for ( i = 0; i < CompoundShape(p1).shapeCount; i++ )
 					{
 						var shape:GeometricShape = CompoundShape(p1).getShapeAt( i );
 						if ( shape is Polygon ) points = points.concat(Polygon(shape).getCopyOfPoints());
@@ -562,7 +562,7 @@
 					points = Polygon(p1).getCopyOfPoints();
 				} else if ( p1 is CompoundShape )
 				{
-					for ( var i:int = 0; i < CompoundShape(p1).shapeCount; i++ )
+					for ( i = 0; i < CompoundShape(p1).shapeCount; i++ )
 					{
 						var shape:GeometricShape = CompoundShape(p1).getShapeAt( i );
 						if ( shape is Polygon ) points = points.concat(Polygon(shape).getCopyOfPoints());

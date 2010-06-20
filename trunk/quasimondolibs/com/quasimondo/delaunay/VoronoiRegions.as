@@ -33,6 +33,7 @@ package com.quasimondo.delaunay
 		
 		public static function deleteRegion( n:VoronoiRegion ):void
 		{
+			n.reset();
 			depot.push(n);
 		}
 		
@@ -41,12 +42,17 @@ package com.quasimondo.delaunay
 			regions = new Dictionary( true );
 		}
 		
-		public function getRegions():Vector.<VoronoiRegion>
+		public function reset():void
+		{
+			regions = new Dictionary( true );
+		}
+		
+		public function getRegions( ignoreOuterRegions:Boolean = true ):Vector.<VoronoiRegion>
 		{
 			var result:Vector.<VoronoiRegion> = new Vector.<VoronoiRegion>();
 			for each ( var region:VoronoiRegion in regions )
 	  		{ 
-	  			result.push( region );
+	  			if ( !ignoreOuterRegions || !(region.p.data is BoundingTriangleNodeProperties) ) result.push( region );
 			}
 			return result;
 		}
@@ -86,7 +92,8 @@ package com.quasimondo.delaunay
 			r2.addPoint( line.p1 );
 			r1.addPoint( line.p2 );
 			r2.addPoint( line.p2 );
-			
+			r1.addNeighbor( r2 );
+			r2.addNeighbor( r1 );
 		
 		}
 
@@ -96,9 +103,9 @@ package com.quasimondo.delaunay
 	  		{ 
 	  			
 				deleteRegion( region );
-				delete regions[region.p];
 			}
 			size = 0;
+			reset();
 		}
 		
 		public function clip():void

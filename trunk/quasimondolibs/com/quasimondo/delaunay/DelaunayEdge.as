@@ -22,9 +22,7 @@ package com.quasimondo.delaunay
 		private var c:Number;  // line equation parameters. aX+bY+c=0
 		
 		private var s:Number;
-		private var ee:DelaunayEdge;
-  		private var e:DelaunayEdge;
-  		
+		
   		
 		public function DelaunayEdge( $p1:DelaunayNode, $p2:DelaunayNode ):void
 		{
@@ -46,16 +44,19 @@ package com.quasimondo.delaunay
 		
 		public function reset():void
 		{
+			p1 = null;
+			p2 = null;
 			invE = null; 
 			nextE = null;
 			nextH = null;
 			inT = null;
+			next = null;
 			flip = 0;
 		}
 		
 		public function makeSymm():DelaunayEdge 
 		{ 
-			e = DelaunayEdges.getEdge(p2,p1); 
+			var e:DelaunayEdge = DelaunayEdges.getEdge(p2,p1); 
 			invE = e; 
  			e.invE = this; 
 			
@@ -103,14 +104,16 @@ package com.quasimondo.delaunay
 		
    		public function get mostLeft():DelaunayEdge
   		{ 
-  			e = this;
+			var e:DelaunayEdge = this;
+			var ee:DelaunayEdge;
   			while( ( ee = e.nextE.nextE.invE ) != null && ee !== this ) e = ee;
     		return e.nextE.nextE;
   		}
   
   		public function get mostRight():DelaunayEdge
  		{ 
- 			e = this;
+ 			var e:DelaunayEdge = this;
+			var ee:DelaunayEdge;
     		while( e.invE!=null && (ee=e.invE.nextE) !== this) e = ee;
     		return e;
   		}

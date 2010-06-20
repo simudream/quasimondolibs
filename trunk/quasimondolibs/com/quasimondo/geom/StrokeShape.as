@@ -248,7 +248,7 @@ package com.quasimondo.geom
 		public function mapMixedPath( path:MixedPath ):LinearPath
 		{
 			var bounds:Rectangle = path.getBoundingRect( false );
-			var stepSize:Number = 1 / path.getLength();
+			var stepSize:Number = 1 / path.length;
 			
 			var outputPath:LinearPath = new LinearPath();
 			var p:Vector2;

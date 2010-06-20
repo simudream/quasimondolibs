@@ -264,5 +264,10 @@ package com.quasimondo.delaunay
 					break;
 			}
 		}
+		
+		override public function clone( replaceNode:Boolean = true, newNode:DelaunayNode = null ):DelaunayNodeProperties
+		{
+			throw new Error("sorry, but the clone function still needs to be implemented");
+		}
 	}
 }

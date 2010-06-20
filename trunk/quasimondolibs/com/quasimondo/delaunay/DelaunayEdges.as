@@ -10,9 +10,6 @@ package com.quasimondo.delaunay
 		public var size:int = 0;
 		private var marker1:int = 0;
 		
-		private var eg:DelaunayEdge;
-		private var teg:DelaunayEdge;
-		
 		private var ep1:DelaunayNode;
 		private var ep2:DelaunayNode;
 		
@@ -33,7 +30,6 @@ package com.quasimondo.delaunay
 		
 		public static function deleteEdge( edge:DelaunayEdge ):void
 		{
-			edge.next = null;
 			edge.reset();
 			depot.push(edge);
 		}
@@ -51,7 +47,7 @@ package com.quasimondo.delaunay
 	
 		public function elementAt( index:int ):DelaunayEdge
 		{
-			eg = first;
+			var eg:DelaunayEdge = first;
 			while ( index-- > 0 && eg )
 			{ 
 				eg = eg.next 
@@ -61,6 +57,7 @@ package com.quasimondo.delaunay
 		
 		public function removeFirstElement():DelaunayEdge
 		{
+			var eg:DelaunayEdge;
 			if (first!=null)
 			{
 				size--;
@@ -73,6 +70,9 @@ package com.quasimondo.delaunay
 		
 		public function deleteElement( e:DelaunayEdge ):void
 		{
+			var eg:DelaunayEdge;
+			var teg:DelaunayEdge;
+			
 			if ( first === e )
 			{
 				size--;
@@ -98,6 +98,8 @@ package com.quasimondo.delaunay
 		
 		public function removeElement( e:DelaunayEdge ):void
 		{
+			var eg:DelaunayEdge;
+			var teg:DelaunayEdge;
 			if ( first === e )
 			{
 				size--;
@@ -131,7 +133,7 @@ package com.quasimondo.delaunay
 		
 		public function draw( g:Graphics ):void
 		{
-			eg = first;
+			var eg:DelaunayEdge = first;
 			while ( eg!=null )
 			{
 				eg.draw(g);
@@ -141,7 +143,7 @@ package com.quasimondo.delaunay
 		
 		public function apply( f:Function ):void
 		{
-			eg = first;
+			var eg:DelaunayEdge = first;
 			while ( eg!=null )
 			{
 				f(eg);
@@ -151,15 +153,12 @@ package com.quasimondo.delaunay
 		
 		public function buildVoronoiRegions( regions:VoronoiRegions ):void
 		{
-			eg = first;
+			var eg:DelaunayEdge = first;
 			while ( eg!=null )
 			{
 				regions.addEdge( eg );
 				eg = eg.next;
 			}
-			
-			//regions.clip();
-			
 		}
 		
 		public function drawVoronoi( g:Graphics ):void
@@ -168,11 +167,10 @@ package com.quasimondo.delaunay
 		    var line:LineSegment;
 		    while ( e!=null )
 			{
-				
 			  line = e.getVoronoiLine();
 			  line.clip( -4000,4000,-4000,4000);
 			  line.draw( g );
-		      e = e.next;
+			  e = e.next;
 		    }
 		 }
 		
@@ -199,7 +197,7 @@ package com.quasimondo.delaunay
 			var ep2d:DelaunayNodeProperties;
 			var tries:int = 0;
 			var collision:Boolean;
-			
+			var eg:DelaunayEdge;
 			do {
 				collision = false
 				eg = first;
@@ -223,13 +221,14 @@ package com.quasimondo.delaunay
 		   
 		}
 		
-		public function getEdges():Vector.<DelaunayEdge>
+		public function getEdges( ignoreOuterEdges:Boolean = true ):Vector.<DelaunayEdge>
 		{
 			var result:Vector.<DelaunayEdge> = new Vector.<DelaunayEdge>();
-			eg = first;
+			var eg:DelaunayEdge = first;
 			while ( eg!=null )
 			{
-				result.push( eg );
+				if ( !ignoreOuterEdges || !(eg.p1.data is BoundingTriangleNodeProperties || eg.p2.data is BoundingTriangleNodeProperties ))
+					result.push( eg );
 				eg = eg.next;
 			}
 			

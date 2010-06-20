@@ -1,4 +1,4 @@
-package com.signalsondisplay.structs.iterators
+package com.signalsondisplay.datastructs.iterators
 {
 	
 	/**
@@ -12,6 +12,7 @@ package com.signalsondisplay.structs.iterators
 		function next():*;
 		function hasNext():Boolean;
 		function reset():void;
+		function key():uint;
 	}
 	
 }
