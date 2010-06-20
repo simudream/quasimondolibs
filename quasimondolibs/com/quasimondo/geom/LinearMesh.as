@@ -15,6 +15,7 @@ package com.quasimondo.geom
 {
 	import com.quasimondo.geom.pointStructures.BalancingKDTree;
 	import com.quasimondo.geom.pointStructures.KDTreeNode;
+	import com.signalsondisplay.datastructs.graphs.Dijkstra;
 	import com.signalsondisplay.datastructs.graphs.Graph;
 	import com.signalsondisplay.datastructs.graphs.Vertex;
 	
@@ -69,12 +70,15 @@ package com.quasimondo.geom
 		{
 			if ( line.length == 0 ) return;
 			
+			var p1:Vector2 = line.p1.getClone();
+			var p2:Vector2 = line.p2.getClone();
+			
 			var p:Vector2;
 			
-			var p1_index:int = getPointIndex(line.p1 );
-			if ( p1_index != -1 ) line.p1 = points[p1_index];
-			var p2_index:int = getPointIndex(line.p2 );
-			if ( p2_index != -1 ) line.p2 = points[p2_index];
+			var p1_index:int = getPointIndex( p1 );
+			if ( p1_index != -1 ) p1 = points[p1_index];
+			var p2_index:int = getPointIndex( p2 );
+			if ( p2_index != -1 ) p2 = points[p2_index];
 			
 			if ( p1_index == -1 )
 			{
@@ -84,7 +88,7 @@ package com.quasimondo.geom
 				} else {
 					p1_index = points.length;
 				}
-				addPoint( p1_index, line.p1 );
+				addPoint( p1_index, p1 );
 			}
 			
 			if ( p2_index == -1 )
@@ -96,7 +100,7 @@ package com.quasimondo.geom
 					p2_index = points.length;
 				}
 				
-				addPoint( p2_index, line.p2 );
+				addPoint( p2_index, p2 );
 			}
 			
 			var l:LineSegment;
@@ -109,15 +113,17 @@ package com.quasimondo.geom
 			var d1:Number, d2:Number;
 			var intersectionInfos:Vector.<IntersectionInfo> = new Vector.<IntersectionInfo>();
 				
-			intersectionInfos.push( new IntersectionInfo(line.p1, "", null ));	
-			intersectionInfos.push( new IntersectionInfo(line.p2, "", null ));	
-				
+			intersectionInfos.push( new IntersectionInfo( p1, "", null ));	
+			intersectionInfos.push( new IntersectionInfo( p2, "", null ));	
+			
+			var intersectionLine:LineSegment = new LineSegment(p1,p2);
+			
 			for ( var id:String in edges )
 			{
 				if ( id.indexOf(id1) == -1 &&  id.indexOf(id2) == -1 )
 				{
 					l = LineSegment(edges[id]);
-					intersections = line.getIntersection( l, true );
+					intersections = intersectionLine.getIntersection( l, true );
 					if ( intersections.length == 1 )
 					{
 						intersectionInfos.push( new IntersectionInfo(intersections[0], id, l ));
@@ -141,7 +147,7 @@ package com.quasimondo.geom
 			for ( var i:int = intersectionInfos.length; --i > -1; )
 			{
 				var info:IntersectionInfo = intersectionInfos[i];
-				if ( info.line != null && line.p1.equals( info.intersection ) )
+				if ( info.line != null && p1.equals( info.intersection ) )
 				{
 					intersectionInfos.splice(i,1);
 					removeConnection( info.connectionID );
@@ -152,7 +158,7 @@ package com.quasimondo.geom
 					
 					addEdge( idx1, p1_index );
 					addEdge( idx2, p1_index );
-				} else if ( info.line != null && line.p2.equals( info.intersection ) )
+				} else if ( info.line != null && p2.equals( info.intersection ) )
 				{
 					intersectionInfos.splice(i,1);
 					removeConnection( info.connectionID );
@@ -182,13 +188,13 @@ package com.quasimondo.geom
 				{
 					p = info.line.p2;
 					newIndex = pointsToIndex[p];
-				} else if ( line.p1.squaredDistanceToVector( p ) <= squaredSnapDistance  )
+				} else if ( p1.squaredDistanceToVector( p ) <= squaredSnapDistance  )
 				{	
-					p = line.p1;
+					p = p1;
 					newIndex = pointsToIndex[p];
-				} else if ( line.p2.squaredDistanceToVector( p ) <= squaredSnapDistance  )
+				} else if ( p2.squaredDistanceToVector( p ) <= squaredSnapDistance  )
 				{
-					p = line.p2;
+					p = p2;
 					newIndex = pointsToIndex[p];
 				} else {
 					if ( freeIndices.length > 0 )
@@ -308,6 +314,7 @@ package com.quasimondo.geom
 			if ( vertices[index1] == null ) vertices[index1] = new Vertex(index1.toString());
 			if ( vertices[index2] == null ) vertices[index2] = new Vertex(index2.toString());
 			graph.addEdge(vertices[index1], vertices[index2], l.length );
+			graph.addEdge(vertices[index2], vertices[index1], l.length );
 			edgeCount++;
 			return id;
 		}
@@ -319,6 +326,7 @@ package com.quasimondo.geom
 			var indices:Array = id.split("|");
 			edgeCount--;
 			graph.removeEdge(vertices[parseInt(indices[1])], vertices[parseInt(indices[2])] );
+			graph.removeEdge(vertices[parseInt(indices[2])], vertices[parseInt(indices[1])] );
 		}
 		
 		public function addRectangle( rect:Rectangle ):void
@@ -536,102 +544,6 @@ package com.quasimondo.geom
 			}
 			return connectionIndices;
 		}
-		
-		/*
-		public function getPolygons():Vector.<Polygon>
-		{
-			var index:int;
-			var indices:Array;
-			var vertex1:Vertex, vertex2:Vertex, result:Vertex;
-			var d:Dijkstra;
-			var polys:Vector.<Polygon> = new Vector.<Polygon>();
-			var polyIndices:Vector.<int>;
-			var minIndex:int;
-			var minID:int;
-			var check:String;
-			var polyCheck:Dictionary = new Dictionary();
-			var polygon:Polygon;
-			var usedEdges:Dictionary = new Dictionary();
-			
-			for ( var id:String in edges ) {
-				trace( "EDGE "+id );
-				
-				if ( usedEdges[id] >= 2 ) {
-					trace("edge "+id+" used "+usedEdges[id]+" times: skipping");
-					continue;
-				}
-				indices = id.split("|");
-				vertex1 = vertices[ indices[1]];
-				vertex2 = vertices[ indices[2]];
-				graph.removeEdge( vertex1,vertex2 );
-				
-				polyIndices = new Vector.<int>();
-				minID = vertex2.index;
-				minIndex = 0;
-				result = new Dijkstra( graph, vertex1, vertex2 ).search();
-				while ( result != null )
-				{
-					polyIndices.push( result.index );
-					if ( result.index < minID )
-					{
-						minID = result.index;
-						minIndex = polyIndices.length - 1;
-					}
-					result = result.parent;
-				}
-				
-				trace("order: "+polyIndices.toString());
-				
-				graph.addEdge( vertex1,vertex2 );
-				
-				if ( polyIndices.length > 2 )
-				{
-					if ( minIndex > 0 )
-					{
-						polyIndices = polyIndices.concat( polyIndices.splice( 0, minIndex ) );
-					}
-					
-					check = polyIndices.toString();
-					if ( !polyCheck[check] )
-					{
-						polyCheck[check] = true;
-						polyIndices.reverse();
-						polyIndices.splice(0,0,polyIndices.pop());
-						polyCheck[polyIndices.toString()] = true;
-						
-						polygon = new Polygon();
-						for each ( index in polyIndices )
-						{
-							polygon.addPoint( points[index] );
-						}
-						polys.push( polygon );
-						
-						for ( var i:int = 0; i < polyIndices.length; i++ )
-						{
-							var index1:int = polyIndices[i];
-							var index2:int = polyIndices[int((i+1) % polyIndices.length)];
-							var id:String = "|"+( index1 < index2 ? index1 +"|" + index2 : index2 +"|" + index1 ) + "|";
-							if ( usedEdges[id] == null ) usedEdges[id] = 1 else usedEdges[id]++;
-						}
-						
-					} else {
-						trace( "already found" );
-					}
-				}
-			}
-			
-			
-			trace( "points: ", pointCount );
-			trace( "edges: ", edgeCount );
-			trace( "faces: ", polys.length );
-			
-			trace( "euler-check: ", pointCount - edgeCount + polys.length );
-			//V-E+F=2
-			
-			
-			return polys;
-		}
-		*/
 		
 		public function getPolygons():Vector.<Polygon>
 		{
@@ -1086,6 +998,31 @@ package com.quasimondo.geom
 			return result;
 		}
 		
+		public function getShortestPath( start:Vector2, end:Vector2 ):LinearPath
+		{
+			var result:LinearPath = new LinearPath();
+			
+			var startIndex:int = getPointIndex( start );
+			if ( startIndex == -1 ) return result;
+			var startVertex:Vertex = vertices[ startIndex ];
+			
+			var endIndex:int = getPointIndex( end );
+			if ( endIndex == -1 ) return result;
+			var endVertex:Vertex = vertices[ endIndex ];
+			
+			var d:Dijkstra = new Dijkstra( graph, startVertex, endVertex );
+			var res:Vertex = d.search();
+
+			while ( res )
+			{
+				result.addPoint( points[res.index] );
+				res = res.parent;
+			}
+
+			return result;
+		}
+			
+		
 		public function clone():LinearMesh
 		{
 			var lm:LinearMesh = new LinearMesh();
@@ -1150,10 +1087,9 @@ package com.quasimondo.geom
 
 	}
 }
-	import com.quasimondo.geom.LineSegment;
-	import __AS3__.vec.Vector;
-	import com.quasimondo.geom.Vector2;
-	
+
+import com.quasimondo.geom.LineSegment;
+import com.quasimondo.geom.Vector2;
 
 final internal class ConnectionInfo
 {
