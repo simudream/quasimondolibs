@@ -9,16 +9,14 @@ package com.quasimondo.delaunay
 		
 		private var first:DelaunayTriangle;
 		public var size:int = 0;
-		private var ta:DelaunayTriangle;
-		private var tat:DelaunayTriangle;
 		
-		private static var depot:Array = [];
+		private static var depot:Vector.<DelaunayTriangle> = new Vector.<DelaunayTriangle>();
 		
 		public static function getTriangle( e1:DelaunayEdge, e2:DelaunayEdge, e3:DelaunayEdge, edges:DelaunayEdges = null ):DelaunayTriangle
 		{
 			var tri:DelaunayTriangle;
 			if ( depot.length>0){
-				tri = DelaunayTriangle(depot.pop());
+				tri = depot.pop();
 				tri.update( e1, e2, e3, edges );
 			} else {
 				tri = new DelaunayTriangle( e1, e2, e3, edges );
@@ -28,7 +26,7 @@ package com.quasimondo.delaunay
 		
 		public static function deleteTriangle( tri:DelaunayTriangle ):void
 		{
-			tri.next = null;
+			tri.reset();
 			depot.push(tri);
 		}
 		
@@ -45,7 +43,7 @@ package com.quasimondo.delaunay
 	
 		public function elementAt( index:int ):DelaunayTriangle
 		{
-			ta = first;
+			var ta:DelaunayTriangle = first;
 			while ( index-- > 0 && ta )
 			{ 
 				ta = ta.next 
@@ -55,6 +53,7 @@ package com.quasimondo.delaunay
 		
 		public function removeFirstElement():DelaunayTriangle
 		{
+			var ta:DelaunayTriangle;
 			if (first!=null)
 			{
 				size--;
@@ -67,6 +66,8 @@ package com.quasimondo.delaunay
 		
 		public function deleteElement( e:DelaunayTriangle ):void
 		{
+			var ta:DelaunayTriangle;
+			var tat:DelaunayTriangle;
 			if ( first == e )
 			{
 				size--;
@@ -92,7 +93,7 @@ package com.quasimondo.delaunay
 		
 		public function removeElement( e:DelaunayTriangle ):void
 		{
-			
+			var ta:DelaunayTriangle;
 			if ( first == e )
 			{
 				size--;
@@ -120,19 +121,19 @@ package com.quasimondo.delaunay
 		 	}
 		}
 		
-		public function drawVertex( g:Graphics ):void
+		public function drawVertex( g:Graphics, ignoreOuterTriangle:Boolean = true ):void
 	  	{
-	  		ta = first;
+			var ta:DelaunayTriangle = first;
 			while ( ta!=null )
 			{
-				ta.drawVertex( g );
+				ta.drawVertex( g, ignoreOuterTriangle );
 				ta = ta.next;
 			}
 	  	}
 		
 		public function drawCircles( g:Graphics ):void
 	  	{
-	  		ta = first;
+			var ta:DelaunayTriangle = first;
 			while ( ta!=null )
 			{
 				ta.drawCircle( g );
@@ -143,7 +144,7 @@ package com.quasimondo.delaunay
 	  	public function getVertices():Vector.<DelaunayTriangle>
 	  	{
 	  		var result:Vector.<DelaunayTriangle> = new Vector.<DelaunayTriangle>();
-	  		ta = first;
+			var ta:DelaunayTriangle = first;
 			while ( ta!=null )
 			{
 				result.push( ta );
@@ -155,7 +156,7 @@ package com.quasimondo.delaunay
 	  	public function getTriangles():Vector.<Triangle>
 		{
 			var result:Vector.<Triangle> = new Vector.<Triangle>();
-	  		ta = first;
+			var ta:DelaunayTriangle = first;
 			while ( ta!=null )
 			{
 				result.push( ta.toTriangle() );
@@ -166,7 +167,7 @@ package com.quasimondo.delaunay
 	  	
 	  	public function apply( f:Function ):void
 		{
-			ta = first;
+			var ta:DelaunayTriangle = first;
 			while ( ta!=null )
 			{
 				f(ta);

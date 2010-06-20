@@ -553,6 +553,24 @@ package com.quasimondo.geom
 			return getClosestConnectionToLine( l ).length;
 		}
 		
+		override public function getClosestPoint( p:Vector2 ):Vector2
+		{
+			var closest:Vector2 = getSide( 0 ).getClosestPoint( p );
+			var minDist:Number = closest.squaredDistanceToVector( p );
+			var dist:Number;
+			var pt:Vector2;
+			for ( var i:int = 1; i < points.length; i++ )
+			{
+				pt = getSide( i ).getClosestPoint( p );
+				dist = pt.squaredDistanceToVector( p );
+				if ( dist < minDist ) {
+					minDist = dist ;
+					closest = pt;
+				}
+			}
+			return closest;
+		}
+		
 		public function getCubicBezierPath( smoothFactor:Number, mode:int = CUBIC_PATH_RELATIVE ):MixedPath
 		{
 			if ( dirty )
@@ -1282,5 +1300,52 @@ package com.quasimondo.geom
 			return Intersection.intersect( this, that );
 		};
 		
+		public function getTriangle( index1:int, index2:int, index3:int ):Triangle
+		{
+			return new Triangle( getPointAt(index1),getPointAt(index2),getPointAt(index3) );
+		}
+		
+		// Algorithm by Dobin & Snyder
+		// found here:
+		// http://stackoverflow.com/questions/1621364/how-to-find-largest-triangle-in-convex-hull-aside-from-brute-force-search
+		public function getBiggestInscribedTriangle():Triangle
+		{
+			var A:int = 0;
+			var B:int = 1; 
+			var C:int = 2;
+			var bA:int = A; 
+			var bB:int = B;
+			var bC:int = C;
+			var n:int = pointCount;
+			var bestArea:Number = getTriangle(bA, bB, bC).area;
+			var area:Number;
+			
+			while (true)
+			{
+				while (true)
+				{
+					while ( getTriangle( A, B, C ).area <= getTriangle(A, B, C+1).area )
+						C = (C+1)%n;
+					
+					if ( getTriangle( A, B, C ).area <= getTriangle(A, B+1, C).area ) 
+					{
+						B = (B+1)%n;
+						continue;
+					} else {
+						break;
+					}
+				}
+				if ( (area = getTriangle( A, B, C ).area)  > bestArea )
+				{
+					bA = A; bB = B; bC = C;
+					bestArea = area;
+				}
+				A = (A+1)%n
+				if (A==B) B = (B+1)%n
+				if (B==C) C = (C+1)%n
+				if (A==0) break;
+			}
+			return getTriangle( bA, bB, bC );
+		}
 	}
 }

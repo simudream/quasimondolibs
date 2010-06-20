@@ -1,4 +1,4 @@
-package com.signalsondisplay.structs.queues
+package com.signalsondisplay.datastructs.queues
 {
 	
 	public class Prioritizable

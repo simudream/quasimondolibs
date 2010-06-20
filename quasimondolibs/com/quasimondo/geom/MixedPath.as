@@ -24,6 +24,17 @@ package com.quasimondo.geom
 		private var t_toSegments:Vector.<Number>;
 		private var length_toSegments:Vector.<Number>;
 		
+		public static function fromLinearPath( lp:LinearPath, clonePoints:Boolean ):MixedPath
+		{
+			var mp:MixedPath = new MixedPath();
+			for ( var i:int = 0; i < lp.pointCount; i++ )
+			{
+				mp.addPoint(  clonePoints ? lp.points[i].getClone() :  lp.points[i] );	
+			}
+			mp.updateSegments();
+			return mp;
+		}
+		
 		public function MixedPath()
 		{
 			points = new Vector.<MixedPathPoint>();
@@ -282,7 +293,7 @@ package com.quasimondo.geom
 		}
 		
 		
-		public function getLength():Number
+		override public function get length():Number
 		{
 			var len:Number = 0;
 			for (var i:int = segments.length; --i>-1;)
@@ -315,16 +326,16 @@ package com.quasimondo.geom
 			return true;
 		}
 	
-		public function getClosestPoint( x:Number, y:Number ):MixedPathPoint
+		public function getClosestPathPoint( v:Vector2 ):MixedPathPoint
 		{
 			if ( points.length==0 ) return null;
 			
-			var d:Number = points[0].squaredDistanceTo( x, y );
+			var d:Number = points[0].squaredDistanceToVector( v );
 			var closest:MixedPathPoint = points[0];
 			var d2:Number
 			for (var i:int = points.length;--i>0;)
 			{
-				d2 = points[i].squaredDistanceTo( x, y );
+				d2 = points[i].squaredDistanceToVector( v );
 				if (d2<d)
 				{
 					d=d2;
@@ -365,11 +376,13 @@ package com.quasimondo.geom
 		{
 			dirty = false;
 			
+			segments = new Vector.<GeometricShape>();
+			
 			isValid = isValidPath();
 			
 			if (!isValid) return false;
 			
-			segments = new Vector.<GeometricShape>();
+			
 			var traverse:int =  points.length + ( loop ? 0 :-1 );
 			
 			var currentIndex:int = 0;
@@ -447,7 +460,9 @@ package com.quasimondo.geom
 			var steps:Number;
 			var j:Number;
 			
-			var totalLength:Number = this.getLength();
+			var totalLength:Number = length;
+			if ( totalLength == 0 ) return lp;
+			
 			var totalSteps:int = totalLength / segmentLength;
 			var t_step:Number;
 			var t_base:Number = 0;
@@ -457,7 +472,7 @@ package com.quasimondo.geom
 				t_step = (coveredLength / totalLength) / totalSteps;
 				if ( mode == LINEARIZE_CENTER ) t_base = 0.5 * (1 - ( coveredLength / totalLength ));
 			} else {
-				t_step = 1 / totalSteps;
+				t_step = totalSteps > 0 ? 1 / totalSteps : totalLength;
 				
 			}
 			

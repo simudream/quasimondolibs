@@ -902,7 +902,7 @@ package com.quasimondo.geom
 			return minDist;
 		}
 		
-		public function getClosestPoint( p:Vector2 ):Vector2
+		override public function getClosestPoint( p:Vector2 ):Vector2
 		{
 			var closest:Vector2 = getSide( 0 ).getClosestPoint( p );
 			var minDist:Number = closest.squaredDistanceToVector( p );
@@ -1224,6 +1224,11 @@ package com.quasimondo.geom
 			if ( points.length < 3 ) return false;
 			
 			if ( hasPoint( p ) ) return includeVertices;
+			
+			if ( includeVertices )
+			{
+				if ( getClosestPoint( p ).squaredDistanceToVector( p ) < SNAP_DISTANCE * SNAP_DISTANCE ) return true;
+			}
 			
 			var i:int, n:int = points.length;
 			

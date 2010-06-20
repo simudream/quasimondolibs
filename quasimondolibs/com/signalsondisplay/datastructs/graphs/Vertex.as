@@ -1,14 +1,16 @@
-package com.signalsondisplay.structs.graphs
+package com.signalsondisplay.datastructs.graphs
 {
 	
 	/**
 	 * Basic graph vertex
-	 * version: 0.2
+	 * version: 0.3
+	 * 
+	 * @Quasimondo: "index" property added for use in LinearMesh class
 	 */
 	
 	import __AS3__.vec.Vector;
 	
-	import com.signalsondisplay.structs.queues.Prioritizable;
+	import com.signalsondisplay.datastructs.queues.Prioritizable;
 	
 	public class Vertex extends Prioritizable
 	{
@@ -37,21 +39,36 @@ package com.signalsondisplay.structs.graphs
 		
 		public function removeEdge( v:Vertex ):void
 		{
-			for ( var i:int = _edgeCount; --i >-1 ; )
+			for ( var i:int = 0; i < _edgeCount; ++i )
 			{
-				if (_edges[i].dest == v )
+				if ( _edges[ i ].dest == v )
 				{
-					_edges.splice(i,1);
+					_edges[ i ].dest = null;
+					_edges.splice( i, 1 );
 					_edgeCount--;
-					break;
 				}
 			}
 		}
+		
+		/**
+		 * removes all edges from this vertex
+		 */
+		public function removeAllEdges():void
+		{
+			for ( var i:int = 0; i < _edgeCount; ++i )
+			{
+				_edges[ i ] = null;
+				_edges.splice( i, 1 );
+			}
+			_edgeCount = 0;
+		}
+		
 
 		public function get parent():Vertex
 		{
 			return _parent;
 		}
+		
 		public function set parent( parent:Vertex ):void
 		{
 			_parent = parent;
