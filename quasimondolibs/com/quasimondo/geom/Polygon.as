@@ -40,9 +40,6 @@ package com.quasimondo.geom
 		protected var selfIntersectionIndex_side1:int;
 		protected var selfIntersectionIndex_side2:int;
 		
-		
-		protected const SNAP_DISTANCE:Number = 0.0000000001;
-		
 		public static function fromArray( points:Array ):Polygon
 		{
 			var cv:Polygon = new Polygon();
@@ -100,6 +97,12 @@ package com.quasimondo.geom
 				points.push( new Vector2( center.x + radius * Math.cos( rotation + i * angle ),center.y + radius * Math.sin( rotation + i * angle )  ) );
 			}	
 			return Polygon.fromVector( points );
+		}
+		
+		public static function getCircle( center:Vector2, radius:Number, maxSegmentLength:Number = 2):Polygon
+		{
+			var c:Circle = new Circle( center, radius );
+			return c.toPolygon( maxSegmentLength );
 		}
 		
 		public static function getRegularCenteredPolygon( radius:Number, sides:int, center:Vector2 = null, rotation:Number = 0 ):Polygon
@@ -215,16 +218,16 @@ package com.quasimondo.geom
 			return triangles[0].centroid;
 		}
 		
-		public function hasPoint( p:Vector2 ):Boolean
+		override public function hasPoint( p:Vector2 ):Boolean
 		{
 			var nearest:KDTreeNode = tree.findNearestFor( p );
-			return nearest != null && p.squaredDistanceToVector( nearest.point ) < SNAP_DISTANCE;
+			return nearest != null && p.squaredDistanceToVector( nearest.point ) < SNAP_DISTANCE * SNAP_DISTANCE;
 		}
 		
 		public function getIndexOfPoint( p:Vector2 ):int
 		{
 			var nearest:KDTreeNode = tree.findNearestFor( p );
-			if (  nearest != null && p.squaredDistanceToVector( nearest.point ) < SNAP_DISTANCE )
+			if (  nearest != null && p.squaredDistanceToVector( nearest.point ) < SNAP_DISTANCE * SNAP_DISTANCE )
 			{
 				for ( var i:int = points.length; --i>-1;)
 				{
@@ -1377,7 +1380,7 @@ package com.quasimondo.geom
 				n = pointCount;
 				for (i = 0; i < n; i++)
 				{
-					if ( getPointAt(i).squaredDistanceToVector(getPointAt(i+1)) < SNAP_DISTANCE )
+					if ( getPointAt(i).squaredDistanceToVector(getPointAt(i+1)) < SNAP_DISTANCE * SNAP_DISTANCE )
 					{
 						points.splice (((i + 1) % n == 0) ? 0 : i, 2); 
 						i = n; 
@@ -1423,11 +1426,6 @@ package com.quasimondo.geom
 		{
 			return points.concat();
 		}
-		
-		public function intersect ( that:IIntersectable ):Intersection 
-		{
-			return Intersection.intersect( this, that );
-		};
 		
 		public function fractalize( factor:Number = 0.5, range:Number = 0.5, minSegmentLength:Number = 2, iterations:int = 1 ):void
 		{

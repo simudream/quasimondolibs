@@ -34,8 +34,6 @@ package com.quasimondo.geom
 		private var dirty:Boolean = true;
 		private var _boundingRect:Rectangle;
 		
-		private const SNAP_DISTANCE:Number = 0.0000000001;
-		
 		public static function fromArray( points:Array ):ConvexPolygon
 		{
 			var cv:ConvexPolygon = new ConvexPolygon();
@@ -104,11 +102,11 @@ package com.quasimondo.geom
 			return points[int(index % points.length) ];
 		}
 		
-		public function hasPoint( p:Vector2 ):Boolean
+		override public function hasPoint( p:Vector2 ):Boolean
 		{
 			for ( var i:int = points.length; --i>-1;)
 			{
-				if ( p.squaredDistanceToVector( Vector2(points[i]) ) < SNAP_DISTANCE ) {
+				if ( p.squaredDistanceToVector( points[i] ) < SNAP_DISTANCE * SNAP_DISTANCE) {
 					return true;
 				}
 			}
@@ -119,7 +117,7 @@ package com.quasimondo.geom
 		{
 			for ( var i:int = points.length; --i>-1;)
 			{
-				if ( p.squaredDistanceToVector( Vector2(points[i]) ) < SNAP_DISTANCE ) {
+				if ( p.squaredDistanceToVector( points[i] ) < SNAP_DISTANCE * SNAP_DISTANCE ) {
 					return i;
 				}
 			}
@@ -216,8 +214,8 @@ package com.quasimondo.geom
 			
 			for ( var i:int = 0; i< points.length; i++ )
 			{
-				p1 = Vector2(points[ i ]);
-				p2 = Vector2(points[ (i+1) % points.length  ]);
+				p1 = points[i];
+				p2 = points[(i+1) % points.length];
 				a += p1.x * p2.y - p2.x * p1.y ;
 				
 			}
@@ -268,8 +266,8 @@ package com.quasimondo.geom
 			
 			for ( var i:int = 0; i< points.length; i++ )
 			{
-				p1 = points[ i ];
-				p2 = points[ int((i+1) % points.length) ];
+				p1 = points[i];
+				p2 = points[int((i+1) % points.length)];
 				a += ( f = p1.x * p2.y - p2.x * p1.y );
 				sx += (p1.x + p2.x) * f;
 				sy += (p1.y + p2.y) * f;
@@ -317,7 +315,7 @@ package com.quasimondo.geom
 		public function getSide( index:int ):LineSegment
 		{
 			index = ( index % points.length + points.length) % points.length;
-			return new LineSegment( Vector2( points[index]), Vector2( points[int((index+1)% points.length)]) );
+			return new LineSegment( points[index], points[int((index+1)% points.length)] );
 		}
 		
 		
@@ -382,9 +380,9 @@ package com.quasimondo.geom
 				cv.addPoint( intersections[0] );
 				for ( i = intersectionIndices[0]+1; i<intersectionIndices[1];i++)
 				{
-					cv.addPoint( Vector2( points[i]) );
+					cv.addPoint( points[i] );
 				}
-				cv.addPoint( Vector2( points[i]) );
+				cv.addPoint( points[i] );
 				cv.addPoint( intersections[1] );
 				
 				if ( cv.pointCount > 2 )
@@ -396,9 +394,9 @@ package com.quasimondo.geom
 				cv.addPoint( intersections[1] );
 				for ( i = (intersectionIndices[1]+1)%points.length; i!=intersectionIndices[0];i = (i + 1) % points.length)
 				{
-					cv.addPoint( Vector2( points[i]) );
+					cv.addPoint( points[i]);
 				}
-				cv.addPoint( Vector2( points[i]) );
+				cv.addPoint( points[i] );
 				cv.addPoint( intersections[0] );
 				if ( cv.pointCount > 2 )
 				{
@@ -475,18 +473,18 @@ package com.quasimondo.geom
 					
 					if ( slices.length == 2 ) 
 					{
-						finalPoly = ConvexPolygon(slices[0]);
+						finalPoly = slices[0];
 						d = finalPoly.distanceToLine( side );
 						if (  d < snapOffset ) 
 						{
-							finalPoly = ConvexPolygon(slices[1]);
+							finalPoly = slices[1];
 							d = finalPoly.distanceToLine( side );
 							if ( d < snapOffset ) {
 								return null;
 							}
-						} else if ( ConvexPolygon(slices[1]).distanceToLine( side )  > d )
+						} else if ( slices[1].distanceToLine( side )  > d )
 						{
-							finalPoly = ConvexPolygon(slices[1]);
+							finalPoly = slices[1];
 						}
 						
 					} else if ( slices.length == 0 )
@@ -498,7 +496,7 @@ package com.quasimondo.geom
 						
 					} else if ( slices.length == 1 )
 					{
-						d = ConvexPolygon(slices[0]).distanceToLine( side ) ;
+						d = slices[0].distanceToLine( side ) ;
 						if (  d < snapOffset ) {
 							return null;					
 						};
@@ -1291,7 +1289,7 @@ package com.quasimondo.geom
 			return result;
 		}
 		
-		public function intersect ( that:IIntersectable ):Intersection 
+		override public function intersect ( that:IIntersectable ):Intersection 
 		{
 			if ( dirty )
 			{

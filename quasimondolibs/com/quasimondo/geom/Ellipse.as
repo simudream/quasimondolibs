@@ -293,10 +293,5 @@
 			return result;
 		};
 		
-		public function intersect ( that:IIntersectable ):Intersection 
-		{
-			return Intersection.intersect( this, that );
-		};
-	
 	}
 }

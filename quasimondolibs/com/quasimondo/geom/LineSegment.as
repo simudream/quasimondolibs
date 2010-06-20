@@ -141,6 +141,13 @@ package com.quasimondo.geom
 			return p1.angleTo( p2 );
 		}
 		
+		override public function hasPoint( p:Vector2 ):Boolean
+		{
+			if ( p1.squaredDistanceToVector( p ) < SNAP_DISTANCE * SNAP_DISTANCE) return true;
+			if ( p2.squaredDistanceToVector( p ) < SNAP_DISTANCE * SNAP_DISTANCE) return true;
+			return false;
+		}
+		
 		override public function getPoint( t:Number ): Vector2 
 		{
 			return p1.getLerp(p2,t);
@@ -555,11 +562,6 @@ package com.quasimondo.geom
 			
 			return p.mirror( p1.getLerp( p2, t / DdD ) );
 		}
-		
-		public function intersect ( that:IIntersectable ):Intersection 
-		{
-			return Intersection.intersect( this, that );
-		};
 		
 		
 		public function toString( ): String

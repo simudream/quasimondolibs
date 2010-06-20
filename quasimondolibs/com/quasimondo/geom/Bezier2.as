@@ -186,11 +186,7 @@ package com.quasimondo.geom
 			}
 		
 		}
-		 
-		 public function intersect ( that:IIntersectable ):Intersection 
-		 {
-			 return Intersection.intersect( this, that );
-		 };
+		
 	
 		public function toString( ):String
 		{

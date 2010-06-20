@@ -15,6 +15,7 @@ package com.quasimondo.delaunay
 	
 	
 	import com.quasimondo.geom.ConvexPolygon;
+	import com.quasimondo.geom.GeometricShape;
 	import com.quasimondo.geom.Intersection;
 	import com.quasimondo.geom.LineSegment;
 	import com.quasimondo.geom.Polygon;
@@ -744,7 +745,7 @@ package com.quasimondo.delaunay
 			return ConvexPolygon.fromVector( nodes.getVectors( ignoreOuterTriangle ) ); 
 		}
 		
-		public function relaxVoronoi( minOffset:Number = 1, constrain:Polygon = null ):Boolean
+		public function relaxVoronoi( minOffset:Number = 1, constrain:GeometricShape = null ):Boolean
 		{
 			var squaredDistance:Number = minOffset * minOffset;
 			var regions:Vector.<VoronoiRegion> = getVoronoiRegions();
