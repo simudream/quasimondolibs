@@ -16,7 +16,7 @@ package com.signalsondisplay.datastructs.graphs
 	{
 				
 		private var _parent:Vertex;
-		private var _weight:int;
+		private var _weight:Number;
 		private var _edges:Vector.<GraphEdge>;
 		private var _edgeCount:uint;
 		private var _visited:Boolean = false;
@@ -31,7 +31,7 @@ package com.signalsondisplay.datastructs.graphs
 			this.index = index;
 		}
 		
-		public function addEdge( v:Vertex, weight:int ):void
+		public function addEdge( v:Vertex, weight:Number ):void
 		{
 			_edges[ _edgeCount ] = new GraphEdge( v, weight );
 			_edgeCount++
@@ -84,12 +84,12 @@ package com.signalsondisplay.datastructs.graphs
 			return _edges;
 		}
 		
-		public function get weight():int
+		public function get weight():Number
 		{
 			return _weight;
 		}
 		
-		public function set weight( weight:int ):void
+		public function set weight( weight:Number ):void
 		{
 			_weight = weight;
 		}

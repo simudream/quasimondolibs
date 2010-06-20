@@ -9,10 +9,10 @@ package com.signalsondisplay.datastructs.graphs
 	public class GraphEdge
 	{
 	
-		public var cost:int;
+		public var cost:Number;
 		public var dest:Vertex;
 		
-		public function GraphEdge( dest:Vertex, cost:int )
+		public function GraphEdge( dest:Vertex, cost:Number )
 		{
 			this.dest = dest;
 			this.cost = cost;
