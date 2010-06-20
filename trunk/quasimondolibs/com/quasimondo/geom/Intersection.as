@@ -101,8 +101,14 @@
 						return new Intersection().line_mixedPath( LineSegment(shape2), MixedPath(shape1) );
 					break;
 					case "PolygonPolygon":
-						return new Intersection().Polygon_Polygon( Polygon(shape2), Polygon(shape1) );
+						return new Intersection().polygon_polygon( Polygon(shape2), Polygon(shape1) );
 					break;
+					case "CompoundShapeLineSegment":
+						return new Intersection().compoundShape_lineSegment( CompoundShape(shape1), LineSegment(shape2) );
+					break;
+					case "LineSegmentCompoundShape":
+						return new Intersection().compoundShape_lineSegment( CompoundShape(shape2), LineSegment(shape1) );
+						break;
 					
 				}
 				return null;
@@ -117,7 +123,7 @@
 			{
 				for each ( var point:Vector2 in points )
 				{
-					if ( point.squaredDistanceToVector( p ) <= SNAP_DISTANCE ) return;
+					if ( point.squaredDistanceToVector( p ) < GeometricShape.SNAP_DISTANCE * GeometricShape.SNAP_DISTANCE ) return;
 				}
 				points.push(p);
 			}
@@ -187,6 +193,9 @@
 						}
 					}
 				}
+	import com.quasimondo.geom.CompoundShape;
+	import com.quasimondo.geom.IIntersectable;
+
 				if ( points.length > 0 ) {
 					status = Intersection.INTERSECTION;
 				}
@@ -841,7 +850,7 @@
 	    	return result;
 	    }
 	    
-	    public function Polygon_Polygon( p1:Polygon, p2:Polygon ):Intersection
+	    public function polygon_polygon( p1:Polygon, p2:Polygon ):Intersection
 	    {
 	    	var result:Intersection = new Intersection();
 	    	var intersection:Intersection;
@@ -892,14 +901,13 @@
 	    {
 	    	var result:Intersection = new Intersection();
 	    	var intersection:Intersection;
-	    	var side:IIntersectable;
 	    	for ( var i:int = 0; i < p.segmentCount; i++ )
 	    	{
-	    		intersection = l.intersect( side = p.getSegment( i ) );
+	    		intersection = l.intersect( p.getSegment( i ) );
 	    		if ( intersection.status == Intersection.INTERSECTION )
 	    		{
 	    			result.status = Intersection.INTERSECTION;
-	    			result.appendPoint( Vector2( intersection.points[0] ) );
+	    			result.appendPoint( intersection.points[0]);
 	    		} else if ( result.status == Intersection.NO_INTERSECTION )
 	    		{
 	    			result.status = intersection.status;
@@ -907,6 +915,28 @@
 	    	}
 	    	return result;
 	    }
+		
+		
+		public function compoundShape_lineSegment( c:CompoundShape, l:LineSegment ):Intersection
+		{
+			var result:Intersection = new Intersection();
+			var intersection:Intersection;
+			
+			for ( var i:int = 0; i < c.shapeCount; i++ )
+			{
+				intersection = l.intersect( c.getShapeAt( i ));
+				if ( intersection.status == Intersection.INTERSECTION )
+				{
+					result.status = Intersection.INTERSECTION;
+					for ( var j:int = 0; j < intersection.points.length; j++ )
+						result.appendPoint( intersection.points[j]);
+				} else if ( result.status != Intersection.INTERSECTION )
+				{
+					result.status = intersection.status;
+				}
+			}
+			return result;
+		}
 	
 		//
 		private function bezout(e1:Vector.<Number>, e2:Vector.<Number>):Polynomial

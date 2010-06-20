@@ -90,11 +90,6 @@ package com.quasimondo.geom
 			return inside;
 		}
 
-		public function intersect ( that:IIntersectable ):Intersection 
-		{
-			return Intersection.intersect( this, that );
-		};
-		
 		public function addPointAtClosestSide( p:Vector2 ):void
 		{
 			var closestPoly:Polygon;
@@ -147,6 +142,32 @@ package com.quasimondo.geom
 				}
 			}
 			return null;
+		}
+		
+		override public function getClosestPoint(p:Vector2):Vector2
+		{
+			var closest:Vector2;
+			var shortest:Number;
+			var d:Number;
+			for each ( var shape:GeometricShape in shapes )
+			{
+				var v:Vector2 = shape.getClosestPoint( p );
+				if ( closest == null || v.squaredDistanceToVector( p ) < shortest )
+				{
+					shortest = v.squaredDistanceToVector( p );
+					closest = v;
+				}
+			}
+			return closest;
+		}
+		
+		override public function hasPoint( v:Vector2 ):Boolean
+		{
+			for each ( var shape:GeometricShape in shapes )
+			{
+				if ( shape.hasPoint( v ) ) return true;
+			}
+			return false;
 		}
 		
 		override public function clone( deepClone:Boolean = true ):GeometricShape

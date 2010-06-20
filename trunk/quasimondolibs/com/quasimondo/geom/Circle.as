@@ -322,6 +322,11 @@
 			return new Vector2( c.x + r * Math.cos( 2 * Math.PI * t ),  c.y + r * Math.sin( 2 * Math.PI * t ));
 		}
 		
+		override public function hasPoint(v:Vector2):Boolean
+		{
+			return false;
+		}
+		
 		public function getTangentPolygon( circle:Circle ):Polygon
 		{
 			var poly:Polygon = new Polygon();
@@ -333,10 +338,6 @@
 			return poly;
 		}
 		
-		public function intersect ( that:IIntersectable ):Intersection 
-		{
-			return Intersection.intersect( this, that );
-		};
 		
 	}
 }

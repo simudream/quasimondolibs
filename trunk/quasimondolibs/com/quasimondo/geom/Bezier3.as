@@ -890,10 +890,7 @@ package com.quasimondo.geom
 	        return w;
 	    }
 		
-		public function intersect ( that:IIntersectable ):Intersection 
-		{
-			return Intersection.intersect( this, that );
-		};
+		
 		
 		public function toString( ):String
 		{

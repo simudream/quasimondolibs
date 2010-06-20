@@ -674,12 +674,7 @@ package com.quasimondo.geom
 			return path;
 		}
 		
-		public function intersect ( that:IIntersectable ):Intersection 
-		{
-			return Intersection.intersect( this, that );
-		};
 		
-	
 		public function toString():String
 		{
 			var result:Array = [];

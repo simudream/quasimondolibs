@@ -3,8 +3,10 @@
 	import flash.display.Graphics;
 	import flash.geom.Rectangle;
 	
-	public class GeometricShape
+	public class GeometricShape implements IIntersectable
 	{
+		public static var SNAP_DISTANCE:Number = 0.0000000001;
+		
 		public var fillColor:uint;
 		
 		function GeometricShape()
@@ -51,6 +53,12 @@
 		public function moveToEnd ( g: Graphics ): void
 		{
 			throw new Error("Must override moveToEnd!");
+		}
+		
+		public function hasPoint( v:Vector2 ):Boolean
+		{
+			throw new Error("Must override hasPoint!");
+			return null;
 		}
 		
 		public function getPoint( t:Number ):Vector2
@@ -106,6 +114,11 @@
 			throw new Error("Must override isInside");
 			return false;
 		}
+		
+		public function intersect ( that:IIntersectable ):Intersection 
+		{
+			return Intersection.intersect( this, that );
+		};
 		
 		public function clone( deepClone:Boolean = true ):GeometricShape
 		{
