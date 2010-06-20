@@ -57,7 +57,7 @@ package com.signalsondisplay.datastructs.graphs
 		 * Adds an edge from vertex u to vertex v
 		 * edge weight defaults to 1
 		 */
-		public function addEdge( u:Vertex, v:Vertex, weight:int = 1 ):Boolean
+		public function addEdge( u:Vertex, v:Vertex, weight:Number = 1 ):Boolean
 		{
 			trace( "Adding edge from", u.name, "to", v.name );
 			if ( u && v && u != v )
