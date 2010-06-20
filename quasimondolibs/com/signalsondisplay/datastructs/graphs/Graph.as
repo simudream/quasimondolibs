@@ -59,7 +59,7 @@ package com.signalsondisplay.datastructs.graphs
 		 */
 		public function addEdge( u:Vertex, v:Vertex, weight:Number = 1 ):Boolean
 		{
-			trace( "Adding edge from", u.name, "to", v.name );
+			//trace( "Adding edge from", u.name, "to", v.name );
 			if ( u && v && u != v )
 			{
 				u.addEdge( v, weight );
@@ -70,7 +70,7 @@ package com.signalsondisplay.datastructs.graphs
 		
 		public function removeEdge( u:Vertex, v:Vertex ):Boolean
 		{
-			trace( "Removing edge from", u.name, "to", v.name );
+			//trace( "Removing edge from", u.name, "to", v.name );
 			if ( u && v && u != v )
 			{
 				u.removeEdge( v );
