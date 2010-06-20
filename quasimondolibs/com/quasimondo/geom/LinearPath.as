@@ -375,7 +375,7 @@
 				throw( new Error("getSmoothPath: illegal mode "+mode) );
 				return;
 			}
-			var segments:Array = [];
+			var segments:Vector.<LineSegment> = new Vector.<LineSegment>();
 			var s:LineSegment;
 			var l:Number = Number.MAX_VALUE;;
 			var p1:Vector2, p2:Vector2;
@@ -405,10 +405,13 @@
 			
 			
 			var mp:MixedPath = new MixedPath();
-			
+			if ( segments.length > 0 )
+			{
+				mp.addPoint( segments[0].getPoint(0) );
+			}
 			for ( i = 0; i < segments.length; i++ )
 			{
-				s = LineSegment( segments[i] );
+				s = segments[i];
 				if ( s.length > 0 )
 				{
 					switch ( mode )
@@ -429,6 +432,10 @@
 					mp.addControlPoint( s.p2.getClone() );
 				}
 			}
+			if ( segments.length > 0 )
+			{
+				mp.addPoint( segments[segments.length-1].getPoint(1) );
+			}
 			
 			return mp;
 		}
@@ -436,7 +443,7 @@
 		public function getSegment( index:int ):LineSegment
 		{
 			index = ( index % points.length + points.length) % points.length;
-			return new LineSegment( Vector2( points[index]), Vector2( points[int((index+1)% points.length)]) );
+			return new LineSegment( points[index], points[int((index+1)% points.length)] );
 		}
 		
 		public function getCubicBezierPath( smoothFactor:Number, loop:Boolean = false, mode:int = CUBIC_PATH_RELATIVE ):MixedPath
