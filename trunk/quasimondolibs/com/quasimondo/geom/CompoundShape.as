@@ -3,6 +3,7 @@ package com.quasimondo.geom
 	import flash.display.Graphics;
 	import flash.display.Shape;
 	import flash.display.Stage;
+	import flash.geom.Rectangle;
 
 	public class CompoundShape extends GeometricShape implements IIntersectable, ICountable, IPolygonHelpers
 	{
@@ -168,6 +169,16 @@ package com.quasimondo.geom
 				if ( shape.hasPoint( v ) ) return true;
 			}
 			return false;
+		}
+		
+		override public function getBoundingRect(loose:Boolean=true):Rectangle
+		{
+			var r:Rectangle = shapes[0].getBoundingRect(loose);
+			for ( var i:int = 1; i < shapes.length; i++ )
+			{
+				r = r.union(shapes[i].getBoundingRect(loose));
+			}
+			return r;
 		}
 		
 		override public function clone( deepClone:Boolean = true ):GeometricShape
