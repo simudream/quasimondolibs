@@ -16,7 +16,7 @@
 		public static const CUBIC_PATH_ABSOLUTE:int = 1;
 		
 		
-		private var __points:Vector.<Vector2>;
+		private var _points:Vector.<Vector2>;
 		private var distances:Vector.<Number>;
 		private var totalLength:Number;
 		
@@ -88,14 +88,14 @@
 		
 		public function LinearPath()
 		{
-			__points = new Vector.<Vector2>();
+			_points = new Vector.<Vector2>();
 			distances = new Vector.<Number>();
 			totalLength = 0;
 		}
 		
 		public function removeAll():void
 		{
-			__points.length = 0;
+			_points.length = 0;
 			distances.length = 0;
 			totalLength = 0;
 		}
@@ -103,18 +103,18 @@
 		public function addXY( x:Number, y:Number ):void
 		{
 			var p:Vector2 = new Vector2( x, y);
-			if ( __points.length>0 && Vector2(__points[__points.length-1]).equals(p)) return;
+			if ( _points.length>0 && _points[_points.length-1].equals(p)) return;
 			
-			__points.push( p );
-			if ( __points.length>1)
+			_points.push( p );
+			if ( _points.length>1)
 			{
-				var d:Number = p.distanceToVector( Vector2(__points[int(__points.length - 2)] ));
+				var d:Number = p.distanceToVector( _points[int(_points.length - 2)] );
 				if ( d > 0 )
 				{
 					distances.push(d);
 					totalLength += d;
 				} else {
-					__points.pop();
+					_points.pop();
 				}
 			}
 			dirty = true;
@@ -122,18 +122,18 @@
 		
 		public function addPoint( p:Vector2 ):void
 		{
-			if ( __points.length>0 && Vector2(__points[__points.length-1]).equals(p)) return;
+			if ( _points.length>0 && _points[_points.length-1].equals(p)) return;
 			
-			__points.push( p.getClone() );
-			if ( __points.length>1)
+			_points.push( p.getClone() );
+			if ( _points.length>1)
 			{
-				var d:Number = p.distanceToVector( Vector2(__points[int(__points.length - 2)] ));
+				var d:Number = p.distanceToVector( _points[int(_points.length - 2)] );
 				if ( d > 0 )
 				{
 					distances.push(d);
 					totalLength += d;
 				} else {
-					__points.pop();
+					_points.pop();
 				}
 			}
 			
@@ -144,7 +144,7 @@
 		{
 			for ( var i:int = 0; i < lp.points.length; i++ )
 			{
-				addPoint( Vector2(lp.points[i]) );
+				addPoint( lp.points[i] );
 			}
 			dirty = true;
 		}
@@ -184,7 +184,7 @@
 					l_cache[t] = l;
 					last_t = t;
 				}
-				l +=  Number( distances[i] );
+				l += distances[i];
 			}
 			
 			while ( t < CACHE_SIZE ) 
@@ -198,29 +198,34 @@
 		
 		public function getPointAt( t:Number ):Vector2
 		{
-			if ( t <= 0 || __points.length == 1) return Vector2( __points[0] );
-			if ( t >= 1) return Vector2( __points[int(__points.length - 1)] );
+			if ( t <= 0 || _points.length == 1) return _points[0];
+			if ( t >= 1) return _points[int(_points.length - 1)] ;
 			
 			if ( dirty ) calculateIndex( );
 			
-			var i:int = int( t_cache[int( t*CACHE_SIZE )] ) ;
+			var i:int = t_cache[int( t*CACHE_SIZE )];
 			
-			var l:Number =  t * totalLength - Number( l_cache[int(t*CACHE_SIZE)] );
+			var l:Number =  t * totalLength - l_cache[int(t*CACHE_SIZE)];
 			
-			while ( l > Number( distances[int(i++)] ) && i < distances.length )
+			while ( l > distances[int(i++)] && i < distances.length )
 			{
-				l -= Number( distances[int(i-1)] );
+				l -= distances[int(i-1)];
 			}
 			
 			i--;
 			
-			return Vector2( __points[ i] ).getLerp( Vector2(__points[int(i+1)]),  ( l / Number( distances[i] ) ) );
+			return _points[ i].getLerp( _points[int(i+1)],  ( l / distances[i] ) );
 			
+		}
+		
+		public function getPointAtIndex( index:int ):Vector2
+		{
+			return points[int(((index % points.length) + points.length)% points.length) ];
 		}
 		
 		override public function translate(offset:Vector2):GeometricShape
 		{
-			for each ( var point:Vector2 in __points )
+			for each ( var point:Vector2 in _points )
 			{
 				point.plus( offset );
 			}
@@ -242,9 +247,9 @@
 			if ( dirty ) calculateIndex( );
 			
 			
-			var i:int = int( t_cache[int( t*CACHE_SIZE )] ) ;
-			var vl:Vector2 = Vector2(points[i]).getClone();
-			var vr:Vector2 = Vector2(points[i]).getClone();
+			var i:int = t_cache[int( t*CACHE_SIZE )];
+			var vl:Vector2 = points[i].getClone();
+			var vr:Vector2 = points[i].getClone();
 			var v:Vector2
 			var lc:int = 1;
 			var rc:int = 1;
@@ -279,25 +284,24 @@
 		{
 			var bestI:int = 0
 			var d:Number;
-			var bestD:Number = Vector2(points[0]).squaredDistanceToVector( p );
+			var bestD:Number = points[0].squaredDistanceToVector( p );
 			for ( var i:int = 1;i < points.length; i++)
 			{
-				if ( (d = Vector2(points[i]).squaredDistanceToVector( p ) ) < bestD )
+				if ( (d = points[i].squaredDistanceToVector( p ) ) < bestD )
 				{
 					bestD = d;
 					bestI = i;
 				}
 			}	
-			/*
-			if ( Vector2(points[bestI]).squaredDistanceToVector( points[(bestI-1+points.length) % points.length]) < Vector2(points[bestI]).squaredDistanceToVector( points[(bestI+1) % points.length]))
-			{ 
-				var l:LineSegment = new LineSegment( points[(bestI-1+points.length) % points.length], points[bestI] );
+			
+			var l:LineSegment;
+			if (bestI > 0 && getPointAtIndex(bestI-1).squaredDistanceToVector( p ) < getPointAtIndex(bestI+1).squaredDistanceToVector( p ))
+			{
+				l = getSegment(bestI-1);
 			} else {
-				var l:LineSegment = new LineSegment( points[bestI], points[(bestI+1) % points.length] );
+				l = getSegment(bestI);
 			}
-			*/
-			var l:LineSegment = new LineSegment( p, Vector2(points[bestI]));
-			return Vector2.fromAngle( l.angle + Math.PI * 0.5, 1 );
+			return l.getNormalAtPoint(null);
 		}
 		
 		
@@ -305,7 +309,7 @@
 		{
 			 var mp:MixedPath = MixedPath.fromLinearPath( this, false );
 			 var lp:LinearPath = ( mp.length == 0 || !mp.isValidPath() ? new LinearPath() : mp.toLinearPath( segmentLength, mode ) );
-			 __points = lp.points;
+			 _points = lp.points;
 			 distances = lp.distances;
 			 totalLength = lp.totalLength;
 			 t_cache = lp.t_cache;
@@ -328,7 +332,7 @@
 		
 		public function get pointCount():int
 		{
-			return __points.length;
+			return _points.length;
 		}
 		
 		public function getTStep( l:Number ):Number
@@ -338,19 +342,19 @@
 		
 		public function get points():Vector.<Vector2>
 		{
-			return __points.concat() ;
+			return _points.concat() ;
 		}
 		
 		override public function draw( g:Graphics ):void
 		{
-			if ( __points.length > 0 )
+			if ( _points.length > 0 )
 			{
 				var i:int = 0;
-				var p:Vector2 = __points[int(i++)];
+				var p:Vector2 = _points[int(i++)];
 				g.moveTo( p.x, p.y );
-				while ( i < __points.length )
+				while ( i < _points.length )
 				{
-					p = __points[int(i++)];
+					p = _points[int(i++)];
 					g.lineTo( p.x, p.y );
 				}
 			}
@@ -358,12 +362,12 @@
 		
 		override public function drawExtras( g:Graphics, factor:Number = 1 ):void
 		{
-			if ( __points.length > 0 )
+			if ( _points.length > 0 )
 			{
 				var i:int = 0;
-				while ( i < __points.length )
+				while ( i < _points.length )
 				{
-					__points[int(i++)].draw(g,factor);
+					_points[int(i++)].draw(g,factor);
 				}
 			}
 		}
