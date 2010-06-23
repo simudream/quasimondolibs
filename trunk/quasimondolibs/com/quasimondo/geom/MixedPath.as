@@ -292,6 +292,17 @@ package com.quasimondo.geom
 			return null;
 		}
 		
+		override public function hasPoint( p:Vector2 ):Boolean
+		{
+			for ( var i:int = points.length; --i>-1;)
+			{
+				if ( p.squaredDistanceToVector( points[i] ) < SNAP_DISTANCE * SNAP_DISTANCE) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
 		
 		override public function get length():Number
 		{
@@ -370,6 +381,26 @@ package com.quasimondo.geom
 				}
 			}
 			return null;
+		}
+		
+		override public function getClosestPoint( p:Vector2 ):Vector2
+		{
+			if ( dirty ) updateSegments();
+			
+			var closest:Vector2 = segments[0].getClosestPoint( p );
+			var minDist:Number = closest.squaredDistanceToVector( p );
+			var dist:Number;
+			var pt:Vector2;
+			for ( var i:int = 1; i < segments.length; i++ )
+			{
+				pt = segments[i].getClosestPoint( p );
+				dist = pt.squaredDistanceToVector( p );
+				if ( dist < minDist ) {
+					minDist = dist ;
+					closest = pt;
+				}
+			}
+			return closest;
 		}
 	
 		public function updateSegments():Boolean
