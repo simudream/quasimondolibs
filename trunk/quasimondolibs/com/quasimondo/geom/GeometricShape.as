@@ -106,7 +106,7 @@
 		public function get length():Number
 		{
 			throw new Error("Must override length");
-			return 0
+			return 0;
 		}
 		
 		public function isInside( p:Vector2, includeVertices:Boolean = true ):Boolean

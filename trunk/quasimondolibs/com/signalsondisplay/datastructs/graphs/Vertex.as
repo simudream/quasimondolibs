@@ -50,6 +50,18 @@ package com.signalsondisplay.datastructs.graphs
 			}
 		}
 		
+		public function hasEdge( v:Vertex ):Boolean
+		{
+			for ( var i:int = 0; i < _edgeCount; ++i )
+			{
+				if ( _edges[ i ].dest == v )
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		
 		/**
 		 * removes all edges from this vertex
 		 */

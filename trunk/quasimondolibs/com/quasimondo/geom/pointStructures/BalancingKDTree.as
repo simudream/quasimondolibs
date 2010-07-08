@@ -44,6 +44,30 @@ package com.quasimondo.geom.pointStructures
 			}
 		}
 		
+		public function removePoint( point:Vector2, rebalance:Boolean = false, minRatio:Number = 0.2 ):void
+		{
+			if ( firstNode == null ) return;
+			
+			var node:KDTreeNode = findPoint( point, firstNode );
+			if ( node == null ) return;
+			var collector:Vector.<Vector2> = new Vector.<Vector2>();
+			if ( node.parent == null )
+			{
+				firstNode = null;
+			} else if ( node.parent.parent == null)
+			{
+				getPoints( node.parent, node, collector );
+				firstNode = new KDTreeNode();
+				firstNode.depth = 0;
+				firstNode.point = collector[0];
+			} else {
+				node.parent.count--;
+				getPoints( node.parent.parent, node, collector );
+				buildDepth( collector, node.parent.parent, node.parent.parent.depth );
+				if ( rebalance ) checkNodeBalanceBottomUp( minRatio, node.parent.parent, null );
+			}
+		}
+		
 		public function removeNearest( point:Vector2, rebalance:Boolean = false, minRatio:Number = 0.2 ):void
 		{
 			if ( firstNode == null ) return;
@@ -272,6 +296,27 @@ package com.quasimondo.geom.pointStructures
 			} else {
 				node.dist = node.point.squaredDistanceToVector( point )
 				return node;
+			}
+			return null;
+		}
+		
+		
+		private function findPoint(point:Vector2, node:KDTreeNode):KDTreeNode
+		{
+			if( node.left && node.right)
+			{
+				var nodeA:KDTreeNode = findPoint( point, node.left );//Traversal like this is costly in actionscript, so you could stack them and process them in one function instead.
+				if ( nodeA != null ) return nodeA;
+				var nodeB:KDTreeNode = findPoint(point, node.right );//Traversal like this is costly in actionscript, so you could stack them and process them in one function instead.
+				if ( nodeB != null ) return nodeB;
+			} else if (node.left )
+			{
+				return findPoint( point, node.left )
+			} else if ( node.right )
+			{
+				return findPoint( point, node.right )
+			} else {
+				if ( node.point == point ) return node;
 			}
 			return null;
 		}

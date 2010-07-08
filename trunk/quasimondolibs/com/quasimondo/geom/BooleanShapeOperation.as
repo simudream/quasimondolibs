@@ -23,6 +23,15 @@
 			
 			public static function operate( shape1:GeometricShape, shape2:GeometricShape, operation:String ):CompoundShape
 			{
+				// temporary hack:
+				if ( shape1.type == "MixedPath" )
+				{
+					shape1 = MixedPath(shape1).toPolygon(10);
+				}
+				if ( shape2.type == "MixedPath" )
+				{
+					shape2 = MixedPath(shape2).toPolygon(10);
+				}
 				
 				switch(  operation )
 				{
@@ -50,6 +59,7 @@
 	
 			public function union( shape1:GeometricShape, shape2:GeometricShape ):CompoundShape
 			{
+				
 				switch(  shape1.type + shape2.type )
 				{
 					case "PolygonPolygon":

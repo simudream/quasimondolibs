@@ -36,7 +36,7 @@
 		
 		static public function getEquilateralTriangle( pa:Vector2, pb:Vector2, flipped:Boolean = false ):Triangle
 		{
-			return new Triangle( pa, pb, new Vector2( pa.getAddCartesian(pb.angleTo(pa) +  Math.PI / 3 * ( flipped ? -1 : 1), pa.distanceToVector( pb ))) );
+			return new Triangle( pa, pb, new Vector2( pa.getAddCartesian(pa.angleTo(pb) +  Math.PI / 3 * ( flipped ? -1 : 1), pa.distanceToVector( pb ))) );
 		}
 		
 		override public function translate(offset:Vector2):GeometricShape
@@ -536,6 +536,112 @@
 			}
 			return result;
 		}
+		
+		public function getTouchingCornerCircles():Vector.<Circle>
+		{
+			var a:Number = getSideLength(0);
+			var b:Number = getSideLength(1);
+			var c:Number = getSideLength(2);
+			var result:Vector.<Circle> = new Vector.<Circle>();
+			result.push( new Circle( p1.getClone(), 0.5 * ( b - c + a )) );
+			result.push( new Circle( p2.getClone(), 0.5 * ( c - b + a )) );
+			result.push( new Circle( p3.getClone(), 0.5 * ( b - a + c )) );
+			return result;
+		}
+		
+		public function getTouchingCornerCircleTriangle():Triangle
+		{
+			var a:Number = getSideLength(0);
+			var b:Number = getSideLength(1);
+			var c:Number = getSideLength(2);
+			
+			var r1:Number = 0.5 * ( b - c + a );
+			var r2:Number = 0.5 * ( c - b + a );
+			var r3:Number = 0.5 * ( b - a + c );
+			
+			return new Triangle( getSide(2).getPoint( r2 / ( r2 + r3 )), getSide(1).getPoint( r1 / ( r3 + r1 )), getSide(0).getPoint( r1 / ( r1 + r2 ))  );
+		}
+		
+		// Soddy circle method by Ryan Phelan: http://www.rphelan.com/
+		// found here: http://www.bit-101.com/blog/?p=1251
+		public function getTouchingCornerCircleIncircle():Circle
+		{
+			var circles:Vector.<Circle> = getTouchingCornerCircles();
+			
+			var x1:Number = circles[0].c.x;
+			var x2:Number = circles[1].c.x;
+			var x3:Number = circles[2].c.x;
+			var y1:Number = circles[0].c.y;
+			var y2:Number = circles[1].c.y;
+			var y3:Number = circles[2].c.y;
+			
+			var a:Number = getSideLength(0);
+			var b:Number = getSideLength(1);
+			var c:Number = getSideLength(2);
+			
+			var R1:Number = 0.5 * ( b - c + a );
+			var R2:Number = 0.5 * ( c - b + a );
+			var R3:Number = 0.5 * ( b - a + c );
+			
+			var ax:Number = 2 * (x2 - x1);
+			var Ay:Number = 2 * (y2 - y1);
+			var Ar:Number = 2 * (R2 - R1);
+			var bx:Number = 2 * (x3 - x2);
+			var By:Number = 2 * (y3 - y2);
+			var Br:Number = 2 * (R3 - R2);		
+			var cx:Number = 2 * (x1 - x3);
+			var Cy:Number = 2 * (y1 - y3);
+			var Cr:Number = 2 * (R1 - R3);		
+			
+			var Aa:Number = x2*x2 - x1*x1 + y2*y2 - y1*y1 + R1*R1 - R2*R2;		
+			var Bb:Number = x3*x3 - x2*x2 + y3*y3 - y2*y2 + R2*R2 - R3*R3;		
+			var Cc:Number = x1*x1 - x3*x3 + y1*y1 - y3*y3 + R3*R3 - R1*R1;
+			
+			var DAB:Number = ax * By - Ay * bx;
+			var DAC:Number = ax * Cy - Ay * cx;
+			var DBC:Number = bx * Cy - By * cx;
+			
+			var DET:Number;
+			var radius:Number;
+			var xPos:Number;
+			var yPos:Number;
+			
+			if( Ar == 0 && Br == 0 )
+			{
+				DET = ax * By - bx * Ay;
+				xPos = (Aa * By - Bb * Ay ) / DET;
+				yPos = (ax * Bb - Ay * Aa ) / DET;
+				var p:Number = 1;
+				var q:Number = 2 * R1;
+				var r:Number = R1*R1 - x1*x1 - y1*y1;
+				var d:Number = q*q - 4 * p * r;
+				radius = (-q + Math.sqrt(d)) / 2;
+			}
+			
+			if( DAB != 0 )
+			{
+				var xr:Number = (Br * Ay - Ar * By) / DAB;
+				var yr:Number = (Ar * bx - Br * ax) / DAB;
+				var xc:Number = (Aa * By - Bb * Ay) / DAB;
+				var yc:Number = (Bb * ax - Aa * bx) / DAB;
+				
+				var Zp:Number = xr*xr + yr*yr - 1;
+				var zq:Number = 2 * xc * xr - 2 * xr * x3 + 2 * yc * yr - 2 * yr * y3 - 2 * R3;
+				var zr:Number = xc*xc - 2 * xc * x3 + x3*x3 + yc*yc - 2 * yc * y3 + y3*y3 - R3*R3;
+				
+				DET = zq*zq - 4 * Zp * zr;
+				radius = (-zq - Math.sqrt(DET)) / 2 / Zp;
+				
+				xPos = xr * radius + xc;
+				yPos = yr * radius + yc;
+			}
+			if (!isNaN(xPos) && !isNaN(yPos)  && !isNaN(radius) )
+				return new Circle( xPos,yPos,radius );
+			
+			return null;
+		}
+		
+		
 		
 		public function getBoundingCircle():Circle
 		{

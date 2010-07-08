@@ -97,17 +97,17 @@ package com.quasimondo.delaunay
 			
 		}
 		
-		public function insertXY( px:Number, py:Number, data:DelaunayNodeProperties = null):void
+		public function insertXY( px:Number, py:Number, data:DelaunayNodeProperties = null):Boolean
 		{
-			insertNode(DelaunayNodes.getNode( px, py, data  ) );
+			return insertNode(DelaunayNodes.getNode( px, py, data  ) );
 		} 
 		
-		public function insertVector2( v:Vector2, data:DelaunayNodeProperties = null):void
+		public function insertVector2( v:Vector2, data:DelaunayNodeProperties = null):Boolean
 		{
-			insertNode(DelaunayNodes.getNode( v.x, v.y, data  ) );
+			return insertNode(DelaunayNodes.getNode( v.x, v.y, data  ) );
 		} 
 		
-		public function insertNode( nd:DelaunayNode ):void
+		public function insertNode( nd:DelaunayNode ):Boolean
 		{
 			regionsReady = false;
 			
@@ -117,7 +117,7 @@ package com.quasimondo.delaunay
 			{
 				min_x = max_x = nd.x;
 				min_y = max_y = nd.y;
-				return;
+				return false;
 			} else if ( ill_defined )
 			{
 				if ( nd.x < min_x ) min_x = nd.x;
@@ -144,18 +144,36 @@ package com.quasimondo.delaunay
 						}
 						
 					}
-					return;
+					return false;
 					
 				} else {
-					return;
+					return false;
 				}
 			}
 			
-			insert( nd );
+			return insert( nd );
 			
 		}
 		
-		private function insert( nd:DelaunayNode ):void
+		public function canInsert( x:Number, y:Number ):Boolean
+		{
+			var nd:DelaunayNode = DelaunayNodes.getNode( x, y );
+			var eid:int;
+			actE = edges.elementAt(0);
+			if( actE.onSide(nd) == -1)
+			{ 
+				if( actE.invE == null ) 
+					eid = -1;
+				else 
+					eid = searchEdge( actE.invE, nd );
+			} else {
+				eid = searchEdge( actE, nd );
+			}
+			DelaunayNodes.deleteNode(nd);
+			return ( eid != 0 );
+		}
+		
+		private function insert( nd:DelaunayNode ):Boolean
 		{
 			var eid:int;
 			actE = edges.elementAt(0);
@@ -174,7 +192,7 @@ package com.quasimondo.delaunay
 				trace( "could not insert node - eid == 0" );   
 				//throw( new Error("could not insert node!"));
 				nodes.deleteElement(nd); 
-				return; 
+				return false; 
 			}
 			if( eid > 0 ) 
 				expandTri( actE, nd, eid );   // nd is inside or on a triangle
@@ -183,12 +201,15 @@ package com.quasimondo.delaunay
 				{             
 					trace( "could not insert node! expandHull failed" );   
 					nodes.deleteElement(nd); 
+					return false; 
 				} // nd is outside convex hull
 			
 			if ( nd.data is BoundingTriangleNodeProperties )
 			{
 				_boundingNodes.push( nd );
 			}
+			
+			return true;
 		}
 		
 		private function makeFirstTriangle( ):Boolean
@@ -254,8 +275,7 @@ package com.quasimondo.delaunay
 		public function removeNode( nd:DelaunayNode ):void
 		{
 			if(nd==null) return;          // not found
-			nodes.removeElement(nd);
-		
+			
 			var e:DelaunayEdge, ee:DelaunayEdge, start:DelaunayEdge;
 			start = e = nd.edge.mostRight;
 			var nodetype:int = 0;
@@ -333,6 +353,9 @@ package com.quasimondo.delaunay
 				index[0].invE.nextH = start.nextH;
 				index[0].invE.invE = null ;
 			}
+			
+			nodes.removeElement(nd);
+			
 		}
 		
 		
@@ -475,17 +498,27 @@ package com.quasimondo.delaunay
 			var s:Number;
 			var f2:int, f3:int;
 			var ee:DelaunayEdge, enx:DelaunayEdge, e0:DelaunayEdge;
-			
+			var lastE:DelaunayEdge;
 			while ( true )
 			{
 				e0 = null;
 				enx = e.nextE;
-				
+				if ( enx == null  )
+				{
+					trace("edge missing");
+					return 0;
+				}
 				if(( f2 = enx.onSide(nd)) == -1 )
 				{ 
 					if( enx.invE != null ) 
 					{
+						if ( enx.invE == lastE )
+						{
+							trace("looks like an endless loop");
+							return 0;
+						}
 						e = enx.invE;
+						lastE = e;
 					} else 
 					{ 
 						actE = e; 

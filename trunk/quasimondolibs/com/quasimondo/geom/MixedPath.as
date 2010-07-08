@@ -71,6 +71,16 @@ package com.quasimondo.geom
 				}
 				
 			}
+			
+			for (var i:int = 0; i<points.length; i++)
+			{
+				if ( points[i].isControlPoint )
+				{
+					points[i].drawCircle(g,3);
+				} else {
+					points[i].drawRect(g,3);
+				}
+			}
 		}
 	
 	
