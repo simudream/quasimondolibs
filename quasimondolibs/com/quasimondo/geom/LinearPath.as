@@ -372,7 +372,7 @@
 			}
 		}
 		
-		public function getSmoothPath( factor:Number, mode:int = 0):MixedPath
+		public function getSmoothPath( factor:Number, mode:int = 0, loop:Boolean = false):MixedPath
 		{
 			if ( mode < 0 || mode > 3 )
 			{
@@ -384,7 +384,7 @@
 			var l:Number = Number.MAX_VALUE;;
 			var p1:Vector2, p2:Vector2;
 			 
-			for ( var i:int = 0; i < points.length-1; i++ )
+			for ( var i:int = 0; i < points.length-(loop ? 0 : 1); i++ )
 			{
 				s = getSegment(i);
 				segments.push( s );
@@ -411,7 +411,9 @@
 			var mp:MixedPath = new MixedPath();
 			if ( segments.length > 0 )
 			{
-				mp.addPoint( segments[0].getPoint(0) );
+				if ( !loop )
+					mp.addPoint( segments[0].getPoint(0) );
+				
 			}
 			for ( i = 0; i < segments.length; i++ )
 			{
@@ -432,15 +434,18 @@
 					p2 = s.getPoint( 1- ( l / s.length ) );
 				
 					mp.addPoint(p1);
-					mp.addPoint(p2);
+					if ( !p1.equals(p2 )) mp.addPoint(p2);
 					mp.addControlPoint( s.p2.getClone() );
 				}
 			}
-			if ( segments.length > 0 )
+			if (  segments.length > 0 )
 			{
-				mp.addPoint( segments[segments.length-1].getPoint(1) );
-			}
-			
+				if (!loop)
+					mp.addPoint( segments[segments.length-1].getPoint(1) );
+				//else
+				//	mp.deletePointAt(0);
+			} 
+			mp.setLoop( loop );
 			return mp;
 		}
 		

@@ -92,6 +92,11 @@
 			return ( r==c2.r && c.x == c2.c.x && c.y == c2.c.y);
 		}
 		
+		public function snaps( c2:Circle ):Boolean
+		{
+			return ( Math.abs(r-c2.r) < SNAP_DISTANCE && Math.abs(c.x-c2.c.x) < SNAP_DISTANCE  && Math.abs(c.y -c2.c.y) < SNAP_DISTANCE  );
+		}
+		
 		public function setDrawingOpions(  sgm:int = 6, s1:Number = 0, s2:Number = 0 ):void
 		{
 			drawingSegments = sgm;
@@ -184,6 +189,11 @@
 		public function get circumference():Number
 		{
 			return 2 * r * Math.PI;
+		}
+		
+		public function get area():Number
+		{
+			return r * r * Math.PI;
 		}
 		
 		//
@@ -338,6 +348,38 @@
 			return poly;
 		}
 		
+		public function getInvertedPoint( p:Vector2 ):Vector2
+		{
+			var dx:Number = p.x - c.x;
+			var dy:Number = p.y - c.y;
+			var dxy:Number = dx * dx + dy * dy ;
+			if ( dxy == 0 ) dxy = 1 / Number.MAX_VALUE;
+			return c.getPlus( new Vector2( r * r * dx  / dxy, r * r * dy / dxy) );
+		}
+		
+		public function inversionOnCircle( inversionCircle:Circle ):void
+		{
+			var dx:Number = c.x - inversionCircle.c.x;
+			var dy:Number = c.y - inversionCircle.c.y;
+			var s:Number = (inversionCircle.r * inversionCircle.r) / ( dx*dx + dy*dy - r*r );
+			
+			r *= Math.abs( s ); 
+			c.x = inversionCircle.c.x + s * dx;
+			c.y = inversionCircle.c.y + s * dy;
+		}
+		
+		public function getInvertedCircle( circle:Circle ):Circle
+		{
+			var dx:Number = circle.c.x - c.x;
+			var dy:Number = circle.c.y - c.y ;
+			var div:Number = dx*dx + dy*dy - circle.r*circle.r;
+			var s:Number = (r * r) / div;
+			if ( s == Infinity ) s = Number.MAX_VALUE;
+			else if ( s == -Infinity ) s = -Number.MAX_VALUE;
+			
+			return new Circle(c.x + s * dx, c.y + s * dy, circle.r * Math.abs( s ) );
+			
+		}
 		
 	}
 }

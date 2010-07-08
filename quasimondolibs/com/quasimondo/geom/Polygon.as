@@ -15,8 +15,9 @@ package com.quasimondo.geom
 	public class Polygon extends GeometricShape implements IIntersectable, ICountable, IPolygonHelpers
 	{
 		
-		public static const NOT_CONVEX:String = "NOT_CONVEX";
-		public static const NOT_CONVEX_DEGENERATE:String = "NOT_CONVEX_DEGENERATE";
+		public static const NON_CONVEX_CCW:String = "NON_CONVEX_CCW";
+		public static const NON_CONVEX_CW:String = "NON_CONVEX_CW";
+		public static const NON_CONVEX_DEGENERATE:String = "NON_CONVEX_DEGENERATE";
 		public static const CONVEX_DEGENERATE:String = "CONVEX_DEGENERATE";
 		public static const CONVEX_CCW:String = "CONVEX_CCW";
 		public static const CONVEX_CW:String = "CONVEX_CW";
@@ -237,6 +238,7 @@ package com.quasimondo.geom
 			return -1;
 		}
 		
+		//warning this can also be a negative value!
 		public function get area():Number
 		{
 			
@@ -849,6 +851,11 @@ package com.quasimondo.geom
 			}
 		}
 		
+		override public function get length():Number
+		{
+			return circumference;
+		}
+		
 		public function get pointCount():int
 		{
 			return points.length;
@@ -1027,22 +1034,34 @@ package com.quasimondo.geom
 			return ConvexPolygon.fromVector( points );
 		}
 		
+		
 		public function getOffsetPolygon( offset:Number ):Polygon
 		{
-			
+			var f:Number = area > 0 ? 1 : -1;
 			var poly:Polygon = new Polygon();
 			
 			for ( var i:int; i < points.length; i++ )
 			{
 				var norm:Vector2 = getNormalAtIndex( i, 10 );
 				var l1:LineSegment = new LineSegment( points[i].getMinus(norm), points[i].getPlus(norm) );
-				var l2:LineSegment = getSide( i ).getParallel( -offset );
+				var l2:LineSegment = getSide( i ).getParallel( -offset * f);
 				var intersection:Vector.<Vector2> = l1.getIntersection(l2);
 				if ( intersection.length > 0 ) poly.addPoint(intersection[0]);
 			}
 			
 			return poly;
-			
+		}
+		
+		
+		public function getOffsetPolygons( offset:Number ):Vector.<Polygon>
+		{
+			var poly1:Polygon = getOffsetPolygon( Math.abs(offset) );
+			var poly2:Polygon = getOffsetPolygon( -Math.abs(offset) );
+			var result:Vector.<Polygon> = new Vector.<Polygon>();
+			result.push(poly1);
+			if ( Math.abs(poly1.area) < Math.abs(poly2.area)) result.push(poly2);
+			else result.unshift(poly2);
+			return result;
 		}
 		
 		private function update():void
@@ -1076,9 +1095,11 @@ package com.quasimondo.geom
 				curDir = thisDir;		
 				thisSign = third.windingDirection( first,second )				
 				if ( thisSign ) {		
-				    if ( angleSign == -thisSign )				
-					return NOT_CONVEX;					
-				    angleSign = thisSign;					
+				    if ( angleSign == -thisSign )
+					{
+						return area > 0 ? NON_CONVEX_CCW : NON_CONVEX_CW;					
+					}
+					angleSign = thisSign;					
 				}								
 				first = second; 
 				second = third;
@@ -1086,7 +1107,7 @@ package com.quasimondo.geom
 		    }
 		    
 		    /* Decide on polygon type given accumulated status */
-		    if ( dirChanges > 2 ) return angleSign ? NOT_CONVEX : NOT_CONVEX_DEGENERATE;
+		    if ( dirChanges > 2 ) return angleSign ? ( area > 0 ? NON_CONVEX_CCW : NON_CONVEX_CW ) : NON_CONVEX_DEGENERATE;
 		
 		    if ( angleSign > 0 ) return CONVEX_CCW;
 		    if ( angleSign < 0 ) return CONVEX_CW;
@@ -1159,7 +1180,8 @@ package com.quasimondo.geom
 		
 		public function getSmoothPath( factor:Number, mode:int = 0):MixedPath
 		{
-			return LinearPath.fromVector( points, true ).getSmoothPath( factor, mode );
+			var mp:MixedPath = LinearPath.fromVector( points, true ).getSmoothPath( factor, mode, true );
+			return mp;
 		}
 		
 		
@@ -1202,6 +1224,91 @@ package com.quasimondo.geom
 			return path;	
 		}
 		
+		public function blur( radius:uint, falloff:Number = 0.5, extrapolate:Number = 1, keepCentroidDistance:Boolean = false, centroidFactor:Number = 1.0 ):void
+		{
+			if ( radius == 0 ) return;
+			var blurredPoints:Vector.<Vector2> = new Vector.<Vector2>();
+			var factor:Number;
+			for ( var i:int = 0; i < points.length; i++ )
+			{
+				factor = 1;
+				var sumPoint:Vector2 = points[i].getClone();
+				var sum:Number = factor;
+				for ( var j:int = 0; j < radius; j++ )
+				{
+					factor *= falloff;
+					var p:Vector2 = getPointAt( i+j);
+					sumPoint.x += p.x * factor;
+					sumPoint.y += p.y * factor;
+					p = getPointAt( i-j);
+					sumPoint.x += p.x * factor;
+					sumPoint.y += p.y * factor;
+					sum += 2 * factor;
+				}
+				blurredPoints.push( sumPoint );
+			}
+			
+			sum = 1 / sum;
+			for ( i = 0; i < points.length; i++ )
+			{
+				blurredPoints[i].multiply( sum ); 
+			}
+			
+			if ( keepCentroidDistance )
+			{
+				var sx:Number = 0;
+				var sy:Number = 0;
+				var a:Number = 0;
+				for ( i = 0; i< blurredPoints.length; i++ )
+				{
+					var p1:Vector2 = blurredPoints[i];
+					var p2:Vector2 = blurredPoints[int((i+1) % blurredPoints.length)];
+					a += ( f = p1.x * p2.y - p2.x * p1.y );
+					sx += (p1.x + p2.x) * f;
+					sy += (p1.y + p2.y) * f;
+				}
+				if ( a != 0 )
+				{
+					var f:Number = 1 / ( 3 * a );
+					var newCentroid:Vector2 = new Vector2( sx * f, sy * f );
+				} else {
+					newCentroid = centroid.getClone();
+				}
+				var c:Vector2 = centroid;
+				
+				for ( i = 0; i < points.length; i++ )
+				{
+					var d:Number = centroidFactor * c.distanceToVector( points[i] ) + ( 1 - centroidFactor ) * newCentroid.distanceToVector(blurredPoints[i]);
+					
+					blurredPoints[i].minus(newCentroid).newLength( d ).plus(c);
+				}
+			}
+			for ( i = 0; i < points.length; i++ )
+			{
+				points[i].x += extrapolate * (blurredPoints[i].x - points[i].x);
+				points[i].y += extrapolate * (blurredPoints[i].y - points[i].y);
+			}
+			
+			
+			dirty = true;
+		}
+		
+		public function joinNeighbors( radius:Number = 1 ):void
+		{
+			
+			var r2:Number = radius * radius;
+			for ( var i:int = 0; i < points.length; i++ )
+			{
+				if ( points[i].snaps( points[ (i + 1) % points.length] , r2 ) )
+				{
+					points[i].lerp(	points[ (i + 1) % points.length], 0.5 );
+					points.splice((i + 1) % points.length,1);
+					i--;
+					dirty = true;
+				}
+			}
+			
+		}
 		
 		override public function getBoundingRect( loose:Boolean = true ):Rectangle
 		{

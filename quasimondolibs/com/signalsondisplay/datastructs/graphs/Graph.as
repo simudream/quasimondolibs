@@ -79,6 +79,16 @@ package com.signalsondisplay.datastructs.graphs
 			return false;
 		}
 		
+		public function hasEdge( u:Vertex, v:Vertex ):Boolean
+		{
+			//trace( "Adding edge from", u.name, "to", v.name );
+			if ( u && v && u != v )
+			{
+				return u.hasEdge( v );
+			}
+			return false;
+		}
+		
 		public function get vertices():Vector.<Vertex>
 		{
 			return _vertices;

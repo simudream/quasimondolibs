@@ -89,7 +89,7 @@ package com.quasimondo.geom
 		
 		public function angleTo( v:Vector2 ):Number
 		{
-			return Math.atan2( y - v.y, x - v.x );
+			return Math.atan2( v.y - y, v.x - x );
 		};
 		
 		public function dot( v:Vector2 ): Number

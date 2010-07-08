@@ -1,12 +1,14 @@
 package com.quasimondo.geom
 {
-	import com.quasimondo.geom.Vector2;
 	import com.quasimondo.geom.Circle;
+	import com.quasimondo.geom.Vector2;
+	
+	import flash.display.Graphics;
 	
 	public class SteinerCircles
 	{
 		
-		public var circles:Array;
+		public var circles:Vector.<Circle>;
 		public var outerCircle:Circle;
 		
 		
@@ -31,7 +33,7 @@ package com.quasimondo.geom
 		}
 		
 		
-		public function init( parentCircle:Circle, circleCount:int, ratio:Number, rotation:Number ):void
+		public function init( parentCircle:Circle, circleCount:int, ratio:Number, rotation:Number, startAngle:Number = 0 ):void
 		{
 			var i:int;
 			
@@ -40,9 +42,7 @@ package com.quasimondo.geom
 			this.ratio = ratio;
 			
 			angleStep = Math.PI / circleCount;
-			
 			piFactor = Math.sin( angleStep );
-			
 			centerFactor = ( 1 - piFactor) / ( 1 + piFactor );
 			
 			var radius:Number = parentCircle.r;
@@ -54,14 +54,13 @@ package com.quasimondo.geom
 			rotAngle = 0;
 			
 			center = new Vector2();
+			circles = new Vector.<Circle>();
 			
-			circles = [];
-			
-			var points:Array = [];
+			var points:Vector.<Vector2> = new Vector.<Vector2>();
 			var angle:Number;
 			for ( i = 0; i < circleCount; i++) 
 			{
-				angle = 2*angleStep*i + rotation;
+				angle = 2*angleStep*i - rotation + startAngle;
 				points.push( new Vector2( Math.cos(angle+angleStep)*satelitesDistance, Math.sin(angle+angleStep)*satelitesDistance));
 				points.push( new Vector2( Math.cos(angle)*a, Math.sin(angle)*a));
 				points.push( new Vector2( Math.cos(angle)*b, Math.sin(angle)*b));
@@ -70,8 +69,8 @@ package com.quasimondo.geom
 			
 			inverter = new Vector2(  parentCircle.r * ratio * Math.cos(rotation), parentCircle.r * ratio * Math.sin(rotation));
 			
-			var innerPoints:Array = [];
-			var outerPoints:Array = [];
+			var innerPoints:Vector.<Vector2> = new Vector.<Vector2>();
+			var outerPoints:Vector.<Vector2> = new Vector.<Vector2>();
 			var p:Array;
 			var j:int;
 			var p1:Vector2;
@@ -80,25 +79,25 @@ package com.quasimondo.geom
 			
 			for ( i = 0;  i < circleCount; i++) 
 			{
-				p1 = invert( Vector2(points[ int( i * 3 ) ] ));
-				p2 = invert( Vector2(points[ int( i * 3 + 1 ) ]) );
-				p3 = invert( Vector2(points[ int( i * 3 + 2) ]) );
+				p1 = invert( points[ int( i * 3 ) ] );
+				p2 = invert( points[ int( i * 3 + 1 )] );
+				p3 = invert( points[ int( i * 3 + 2) ] );
 				
 				innerPoints.push( p2 );
 				outerPoints.push( p3 );
 				
-				circles.push( kd3p( p1, p2, p3 ) );
+				circles.push( Circle.from3Points(p1, p2, p3) );
 			}
 		
-			circles.push( kd3p( Vector2(innerPoints[0]),  Vector2(innerPoints[1]),  Vector2(innerPoints[2]) ) );
-			outerCircle = kd3p(  Vector2(outerPoints[0]),  Vector2(outerPoints[1]),  Vector2(outerPoints[2]) );
+			circles.push( Circle.from3Points( innerPoints[0],  innerPoints[1],  innerPoints[2] ) );
+			outerCircle = Circle.from3Points( outerPoints[0],  outerPoints[1],  outerPoints[2] );
 			
 			var scale:Number =  parentCircle.r / outerCircle.r;
 			var circle:Circle;
 			
 			for ( i = 0;  i < circles.length; i++) 
 			{
-				circle = Circle(circles[i]);
+				circle = circles[i];
 				circle.c.minus( outerCircle.c );
 				circle.c.multiply( scale );
 				circle.r *= scale;
@@ -121,77 +120,10 @@ package com.quasimondo.geom
 			return inverter.getPlus( new Vector2( dx  / dxy, dy / dxy) );
 		}
 		
-		private function kd3p( p0:Vector2, p1:Vector2, p2:Vector2 ):Circle
+		public function draw( canvas:Graphics ):void
 		{
-			var m:Array = [];
-			
-			m[0] = 1;
-			m[1] = -2 * p0.x;
-			m[2] = -2 * p0.y;
-			m[3] = - p0.x * p0.x - p0.y * p0.y;
-			
-			m[4] = 1;
-			m[5] = -2 * p1.x;
-			m[6] = -2 * p1.y;
-			m[7] = - p1.x * p1.x - p1.y * p1.y;
-			
-			m[8] = 1;
-			m[9] = -2 * p2.x;
-			m[10] = -2 * p2.y;
-			m[11] = - p2.x * p2.x - p2.y * p2.y;
-			
-			GLSL( m );
-			
-			return new Circle( Number(m[ 7 ]), Number(m[ 11 ]),  Math.sqrt( Number(m[7]) * Number(m[7]) + Number(m[11]) * Number(m[11]) - Number(m[3])) );
-			
+			for each ( var circle:Circle in circles ) circle.draw(canvas);
 		}
-
-		private function GLSL( m:Array ):void
-		{
-			var q:Number;
-			var i:int, j:int, k:int;
-			for ( j = 0; j < 3; j++) 
-			{
-				q = Number( m[ int( j * 5 ) ] );
-				
-				if (q == 0) 
-				{
-					for ( i = j + 1; i < 3; i++) 
-					{
-						if ( Number( m [ int( i * 4 + j ) ] ) != 0 )
-						{
-							for ( k = 0; k < 4; k++) 
-							{
-								m[ int(j * 4 + k)] += Number( m[ int( i * 4 + k) ] );
-							}
-							q = Number( m[ int( j * 5 ) ] );
-							break;
-						}
-					}
-				}
-				
-				if (q != 0) 
-				{
-					for ( k=0; k < 4; k++)
-					{
-						m[ int( j * 4 + k )] = Number( m[ int( j * 4 + k )] ) / q;
-					}
-				}
-				
-				for ( i = 0; i < 3; i++)
-				{
-					if ( i != j )
-					{
-						q = Number( m[ int( i * 4 + j )] );
-						for ( k=0; k < 4; k++)
-						{
-							m[ int( i * 4 + k )] -= q * Number( m[ int( j * 4 + k )] );
-						}
-					}
-				}
-			}
-		}
-
 	}
 }
 
