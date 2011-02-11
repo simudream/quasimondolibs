@@ -29,6 +29,20 @@ kernel FreiChen
         defaultValue: 1.0;
     >;
     
+    parameter float gamma
+    <
+        minValue: 0.0;
+        maxValue: 20.0;
+        defaultValue: 1.0;
+    >;
+    
+    parameter float invert
+    <
+        minValue: 0.0;
+        maxValue: 1.0;
+        defaultValue: 0.0;
+    >;
+    
     const float sqrt2 = 1.41421356;
     void
     evaluatePixel()
@@ -66,8 +80,9 @@ kernel FreiChen
         
         float M = g1 * g1 + g2 * g2 + g3 * g3 + g4 * g4;
         float S = g5 * g5 + g6 * g6 + g7 * g7 + g8 * g8 + g9 * g9 + M; 
-        float v = sqrt( M / S );
+        float v = pow( sqrt( M / S ), gamma );
         v *= (step( v, threshold ) - threshold) * factor;
+        v = mix( v, 1.0 - v, invert );
         dst = float4( v, v, v, 1.0 );
     }
 }

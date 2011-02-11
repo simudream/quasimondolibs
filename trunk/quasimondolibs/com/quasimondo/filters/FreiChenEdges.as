@@ -13,7 +13,8 @@ package com.quasimondo.filters
 		
 		private var _threshold:Number = 0;
 		private var _strength:Number = 1;
-		
+		private var _gamma:Number = 1;
+		private var _invert:Boolean = false;
 		
 		public function FreiChenEdges( )
 		{
@@ -30,6 +31,26 @@ package com.quasimondo.filters
 		public function set threshold( value:Number ):void
 		{
 			_shader.data.threshold.value = [ _threshold = value ];
+		}
+		
+		public function get gamma():Number
+		{
+			return _gamma;
+		}
+		
+		public function set gamma( value:Number ):void
+		{
+			_shader.data.gamma.value = [ _gamma = value ];
+		}
+		
+		public function get invert():Boolean
+		{
+			return _invert;
+		}
+		
+		public function set invert( value:Boolean ):void
+		{
+			_shader.data.invert.value = [ value ? 1 : 0];
 		}
 		
 		public function get strength():Number
