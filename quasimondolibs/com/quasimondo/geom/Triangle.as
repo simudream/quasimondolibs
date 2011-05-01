@@ -21,6 +21,7 @@
 		static public function getCenteredTriangle( center:Vector2, leftLength:Number, rightLength:Number, bottomLength:Number, angle:Number = 0 ):Triangle
 		{
 			var alpha:Number = - Math.acos( ( leftLength * leftLength - rightLength * rightLength + bottomLength * bottomLength ) / ( 2 * leftLength * bottomLength) );
+			if ( isNaN( alpha )) return null;
 			
 			var v1:Vector2 = new Vector2(0,0);
 			var v2:Vector2 = new Vector2(bottomLength,0 );
@@ -196,6 +197,14 @@
 		
 		
 		override public function draw ( g:Graphics ):void
+		{
+			g.moveTo( p1.x, p1.y );
+			g.lineTo( p2.x, p2.y );
+			g.lineTo( p3.x, p3.y );
+			g.lineTo( p1.x, p1.y );
+		}
+		
+		override public function export( g:IGraphics ):void
 		{
 			g.moveTo( p1.x, p1.y );
 			g.lineTo( p2.x, p2.y );
@@ -404,7 +413,7 @@
 			var s3l:Number = s3.length;
 			
 			var mp:MixedPath = new MixedPath();
-			mp.setLoop( true );
+			mp.setClosed( true );
 			
 			if ( s1l == 0 || s2l == 0 || s3l == 0 ) {
 				

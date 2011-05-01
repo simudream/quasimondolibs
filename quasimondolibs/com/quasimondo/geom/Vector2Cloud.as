@@ -1,6 +1,8 @@
 package com.quasimondo.geom
 {
 	
+	import com.quasimondo.geom.pointStructures.BalancingKDTree;
+	
 	import flash.display.BitmapData;
 	import flash.display.Graphics;
 	import flash.display.Shape;
@@ -19,31 +21,50 @@ package com.quasimondo.geom
 		private var dirty:Boolean = true;
 		private var centroidDirty:Boolean = true;
 		
+		private var tree:BalancingKDTree;
+		private var treeDirty:Boolean;
+	
 		static private const NUM_STANDARD_DEVIATIONS:Number = 1.7;
 		
-		public static function fromVector( points:Vector.<Vector2> ):Vector2Cloud
+		public static function fromVector( points:Vector.<Vector2>, clonePoints:Boolean = false ):Vector2Cloud
 		{
 			var vc:Vector2Cloud = new Vector2Cloud();
-			vc.points = points.concat();
-			for each ( var point:Vector2 in points )
+			if ( !clonePoints )
 			{
-				vc.sum.plus( point );
+				vc.points = points.concat();
+				for each ( var point:Vector2 in points )
+				{
+					vc.sum.plus( point );
+				}
+			} else {
+				for ( var i:int = 0; i < points.length; i++ )
+				{
+					vc.accumulate( points[i].getClone() );
+				}
 			}
+			
 			return vc;
 		}
 		
 		public function Vector2Cloud()
 		{
-			reset();
+			clear();
 		}
 		
-		private function reset():void
+		public function clear():void
 		{
-			points = new Vector.<Vector2>();
+			if ( points == null )
+				points = new Vector.<Vector2>();
+			else 
+				points.length = 0;
+			
 			sum = new Vector2();
 			_centroid = new Vector2();
 			covariance = new CovarianceMatrix2();
 			_majorAngle = 0;
+			dirty = centroidDirty = true;
+			tree = new BalancingKDTree();
+			treeDirty = false;
 		}
 		
 		
@@ -51,9 +72,9 @@ package com.quasimondo.geom
 		{
 			points.push( vector );
 			sum.plus( vector );
+			tree.insertPoint( vector );
 			dirty = centroidDirty = true;
 		}
-		
 		
 		public function compute_covariance_body():void
 		{
@@ -189,8 +210,22 @@ package com.quasimondo.geom
 			return getSplitClouds( LineSegment.fromPointAndAngleAndLength( centroid, majorAngle + Math.PI * 0.5 , 100 ) );
 		}
 		
+		public function getClosestPoint( point:Vector2 ):Vector2
+		{
+			if ( treeDirty )
+			{
+				tree = new BalancingKDTree();
+				tree.insertPoints( points );
+				treeDirty = false;
+			}
+			return tree.findNearestFor( point ).point;
+		}
+		
 		public function drawCovarianceEllipse( canvas:Graphics):void 
 		{
+			
+			if ( dirty ) compute_covariance_body();
+			
 			var axis:Vector.<Vector2> = new Vector.<Vector2>(2,true);
 			var lambda:Vector.<Number> = new Vector.<Number>(2,true);
 			
@@ -233,11 +268,13 @@ package com.quasimondo.geom
 				p.rotateAround( angle, center );
 			}
 			dirty = true;
+			treeDirty = true;
 			return this;
 		}
 		
 		public function getBoundingRect():Rectangle
 		{
+			if ( points.length == 0 ) return new Rectangle();
 			var minX:Number, maxX:Number, minY:Number, maxY:Number;
 			
 			minX = maxX = points[0].x;
@@ -251,7 +288,7 @@ package com.quasimondo.geom
 				if ( point.y > maxY ) maxY = point.y;
 			}
 			
-			return new Rectangle( minX, minY, maxX - minX, maxY - minY );
+			return new Rectangle( minX, minY, maxX - minX + 1, maxY - minY + 1 );
 		}
 		
 		public function convexHull():ConvexPolygon

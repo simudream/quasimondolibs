@@ -10,10 +10,54 @@ package com.quasimondo.geom
 		public var p1:Vector2;
 		public var p2:Vector2;
 		
-		private var dirty:Boolean = true;
-		private var __length:Number;
+		//private var dirty:Boolean = true;
+		//private var __length:Number;
 		
 		private const ZERO_DISTANCE:Number = 1e-10;
+		
+		public static function fromSlope( slope:Number, intercept:Number, bounds:Rectangle ):LineSegment
+		{
+			var pts:Vector.<Vector2> = new Vector.<Vector2>()
+			var x:Number = bounds.left;
+			var y:Number = slope * x + intercept;
+			if ( y >= bounds.top && y <= bounds.bottom )
+			{
+				pts.push( new Vector2( x,y ) );
+			}
+			
+			x = bounds.right;
+			y = slope * x + intercept;
+			if ( y >= bounds.top && y <= bounds.bottom )
+			{
+				pts.push( new Vector2( x,y ) );
+			}
+			
+			if ( pts.length < 2 && slope != 0 )
+			{
+				y = bounds.top;
+				x = (y - intercept) / slope;
+				if (x >= bounds.left && x <= bounds.right )
+				{
+					pts.push( new Vector2( x,y ) );
+				}
+				
+				if ( pts.length < 2 )
+				{
+					y = bounds.bottom;
+					x = (y- intercept) / slope;
+					if (x >= bounds.left && x <= bounds.right )
+					{
+						pts.push( new Vector2( x,y ) );
+					}
+				}
+			}
+			if ( pts.length == 2 )
+			{
+				return new LineSegment( pts[0], pts[1] );
+			}
+			
+			return null;
+		}
 		
 		public static function fromXY( x1:Number, y1:Number,x2:Number, y2:Number):LineSegment
 		{
@@ -89,10 +133,22 @@ package com.quasimondo.geom
 			return "LineSegment";
 		}
 		
-		override public function draw ( g:Graphics ):void
+		override public function draw( g:Graphics ):void
 		{
 			g.moveTo( p1.x, p1.y );
 			g.lineTo( p2.x, p2.y );
+		}
+		
+		override public function export( g:IGraphics ):void
+		{
+			g.moveTo( p1.x, p1.y );
+			g.lineTo( p2.x, p2.y );
+		}
+		
+		public function drawWithOffset( g:Graphics, offset:Vector2 ):void
+		{
+			g.moveTo( p1.x + offset.x, p1.y + offset.y );
+			g.lineTo( p2.x + offset.x, p2.y + offset.y );
 		}
 		
 		override public function drawExtras ( g:Graphics, factor:Number = 1 ):void
@@ -126,14 +182,29 @@ package com.quasimondo.geom
 			g.moveTo( p2.x, p2.y );
 		}
 		
+		override public function exportDrawTo ( g: IGraphics ):void
+		{
+			g.lineTo( p2.x, p2.y );
+		}
+		
+		override public function exportMoveToStart ( g: IGraphics ):void
+		{
+			g.moveTo( p1.x, p1.y );
+		}
+		
+		override public function exportMoveToEnd ( g: IGraphics ): void
+		{
+			g.moveTo( p2.x, p2.y );
+		}
+		
 		override public function get length():Number
 		{
-			if (!dirty) return __length;
+			//if (!dirty) return __length;
 			
-			__length = p1.getMinus(p2).length;
-			dirty = false;
+			//__length = ;
+			//dirty = false;
 			
-			return __length;
+			return p1.getMinus(p2).length;
 		}
 		
 		public function get angle():Number
@@ -236,6 +307,11 @@ package com.quasimondo.geom
 			//trace( (p1.distanceToVector( pt ) + p2.distanceToVector( pt ) ) - length);
 			return ( p1.distanceToVector( pt ) + p2.distanceToVector( pt ) ) - length < ZERO_DISTANCE; 
 		}
+		
+		public function equals( ls:LineSegment ):Boolean
+		{
+			return( (p1.distanceToVector(ls.p1 ) < ZERO_DISTANCE &&  p2.distanceToVector(ls.p2 ) < ZERO_DISTANCE) || (p1.distanceToVector(ls.p2 ) < ZERO_DISTANCE &&  p2.distanceToVector(ls.p1 ) < ZERO_DISTANCE));
+		}
 	
 		public function getClosestPointOnLine( pt:Vector2 ):Vector2
 		{
@@ -284,6 +360,21 @@ package com.quasimondo.geom
 			}
 			
 			return p1.getLerp( p2, t / DdD );
+		};
+		
+		public function getClosestT( pt:Vector2 ):Number
+		{
+			var Dx:Number = p2.x - p1.x;
+			var Dy:Number = p2.y - p1.y;
+			
+			var YmP0x:Number = pt.x - p1.x;
+			var YmP0y:Number = pt.y - p1.y;
+			
+			var t:Number =  YmP0x * Dx + YmP0y * Dy;
+			var DdD:Number = Dx*Dx + Dy*Dy;
+			if ( DdD == 0 ) return 0;
+			return ( t / DdD )
+		
 		};
 		
 		override public function getNormalAtPoint( p:Vector2 ):Vector2
@@ -385,6 +476,13 @@ package com.quasimondo.geom
 				p1.y = p2.y + ( p1.y - p2.y ) * factor;
 			}
 			return this;
+		}
+		
+		public function setLength( value:Number, fromP1:Boolean = true ):LineSegment
+		{
+			var f:Number = value / length;
+			
+			return lerp( f, fromP1 );
 		}
 		
 		
@@ -519,6 +617,15 @@ package com.quasimondo.geom
 			p2.rotateAround(angle, center );
 			return this;
 		}
+		
+		override public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):GeometricShape
+		{
+			if ( center == null ) center = p1.getLerp( p2, 0.5 );
+			
+			p1.minus( center ).multiplyXY( factorX, factorY ).plus( center );
+			p2.minus( center ).multiplyXY( factorX, factorY ).plus( center );
+			return this;
+		}
   		
   		override public function clone( deepClone:Boolean = true ):GeometricShape
   		{
@@ -563,6 +670,44 @@ package com.quasimondo.geom
 			return p.mirror( p1.getLerp( p2, t / DdD ) );
 		}
 		
+		public function getSplitAtT( t:Number, clonePoints:Boolean = true ):Vector.<LineSegment>
+		{
+			var result:Vector.<LineSegment> = new Vector.<LineSegment>();
+			if ( t == 0 || t == 1 )
+			{
+				result.push( clonePoints ? LineSegment(this.clone()) : this );
+			}
+			if ( t<=0 || t>=1) return result;
+			
+			var p_t:Vector2 = getPoint( t );
+			
+			result.push( new LineSegment( clonePoints ? p1.getClone() : p1, p_t));
+			result.push( new LineSegment( clonePoints ? p_t.getClone() : p_t, clonePoints ? p2.getClone() : p2));
+			
+			return result;
+		}
+		
+		public function getSplitsAtTs( t:Vector.<Number>, clonePoints:Boolean = true ):Vector.<LineSegment>
+		{
+			t.sort( function( a:Number, b:Number ):int{ return ( a < b ? -1 : ( a > b ? 1 : 0))});
+			
+			var current:LineSegment = this;
+			var last_t:Number = 0;
+			var result:Vector.<LineSegment> = new Vector.<LineSegment>();
+			for ( var i:int = 0; i < t.length; i++ )
+			{
+				var parts:Vector.<LineSegment> = current.getSplitAtT( (t[i] - last_t) / ( 1 - last_t ), clonePoints );
+				if ( parts.length > 0 )
+				{
+					result.push( parts[0] );
+					current = ( parts.length == 2 ? parts[1] : parts[0] );
+				}
+				last_t = t[i];
+			}
+			
+			if ( parts.length == 2 ) result.push( parts[1] );
+			return result;
+		}
 		
 		public function toString( ): String
 		{

@@ -559,72 +559,74 @@ package com.quasimondo.geom
 			
 			for ( var index:String in pointsByAngles )
 			{
-				lastIndex = startIndex = parseInt(index);
-				var connectedTo:Array = pointsByAngles[index];
-				var c:int = 0;
-				while ( c < connectedTo.length )
+				while ( true )
 				{
-					if ( walked[startIndex+"|"+connectedTo[c]] == null )
+					lastIndex = startIndex = parseInt(index);
+					var connectedTo:Array = pointsByAngles[index];
+					var c:int = 0;
+					while ( c < connectedTo.length )
 					{
-						break;
-					} 
-					c++;
-				}
-				
-				if ( c == connectedTo.length ) continue;
-				
-				nextIndex = connectedTo[c];
-				walked[startIndex+"|"+connectedTo[c]] = true;
-				polygon.addPoint( points[startIndex] );
-				pointIndices = [startIndex];
-				minPolyIndex = 0;
-				minPointIndex = startIndex;
-				
-				
-				while( nextIndex != startIndex  )
-				{
-					connectedTo = pointsByAngles[nextIndex];
-					for ( var i:int = 0; i < connectedTo.length; i++ )
-					{
-						if ( connectedTo[i] == lastIndex )
+						if ( walked[startIndex+"|"+connectedTo[c]] == null )
 						{
-							lastIndex = nextIndex;
-							nextIndex = connectedTo[(i - 1 + connectedTo.length) % connectedTo.length];
 							break;
+						} 
+						c++;
+					}
+						
+					if ( c == connectedTo.length ) break;
+					
+					nextIndex = connectedTo[c];
+					walked[startIndex+"|"+connectedTo[c]] = true;
+					polygon.addPoint( points[startIndex] );
+					pointIndices = [startIndex];
+					minPolyIndex = 0;
+					minPointIndex = startIndex;
+					
+					
+					while( nextIndex != startIndex  )
+					{
+						connectedTo = pointsByAngles[nextIndex];
+						for ( var i:int = 0; i < connectedTo.length; i++ )
+						{
+							if ( connectedTo[i] == lastIndex )
+							{
+								lastIndex = nextIndex;
+								nextIndex = connectedTo[(i - 1 + connectedTo.length) % connectedTo.length];
+								break;
+							}
+						}
+						pointIndices.push(lastIndex);	
+						polygon.addPoint( points[lastIndex] );
+						if ( lastIndex < minPointIndex )
+						{
+							minPointIndex = lastIndex;
+							minPolyIndex = pointIndices.length -1;
+						}
+						if ( walked[lastIndex+"|"+nextIndex] ) break;
+						walked[lastIndex+"|"+nextIndex] = true;
+					}
+					
+					if ( minPolyIndex > 0 )
+					{
+						pointIndices = pointIndices.concat( pointIndices.splice( 0, minPolyIndex ) );
+					}
+					
+					check = pointIndices.toString();
+					if ( !polyCheck[check] && polygon.area > 0 )
+					{
+						if (  pointIndices.slice().sort(Array.UNIQUESORT) != 0 )
+						{
+							
+							polyCheck[check] = true;
+							pointIndices.reverse();
+							pointIndices.splice(0,0,pointIndices.pop());
+							polyCheck[pointIndices.toString()] = true;	
+							polygons.push(polygon);
 						}
 					}
-					pointIndices.push(lastIndex);	
-					polygon.addPoint( points[lastIndex] );
-					if ( lastIndex < minPointIndex )
-					{
-						minPointIndex = lastIndex;
-						minPolyIndex = pointIndices.length -1;
-					}
-					if ( walked[lastIndex+"|"+nextIndex] ) break;
-					walked[lastIndex+"|"+nextIndex] = true;
+					
+					polygon = new Polygon();
 				}
-				
-				if ( minPolyIndex > 0 )
-				{
-					pointIndices = pointIndices.concat( pointIndices.splice( 0, minPolyIndex ) );
-				}
-				
-				check = pointIndices.toString();
-			
-				if ( !polyCheck[check] && polygon.area > 0 )
-				{
-					if (  pointIndices.slice().sort(Array.UNIQUESORT) != 0 )
-					{
-						
-						polyCheck[check] = true;
-						pointIndices.reverse();
-						pointIndices.splice(0,0,pointIndices.pop());
-						polyCheck[pointIndices.toString()] = true;	
-						polygons.push(polygon);
-					}
-				}
-				
-				polygon = new Polygon();
 			}
 			/*
 			trace( "points: ", pointCount );

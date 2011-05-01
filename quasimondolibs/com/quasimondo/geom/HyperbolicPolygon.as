@@ -88,7 +88,7 @@ package com.quasimondo.geom
 		  			l = new HyperbolicLine( pts[i], pts[(i+1)%n]);
 		  			path.appendPath( l.toMixedPath(  viewport, i == 0 ));
 		  		}
-		  		path.setLoop( true );
+		  		path.setClosed( true );
 		  		return path;
 		  }
 	}

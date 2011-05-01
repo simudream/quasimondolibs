@@ -1,6 +1,8 @@
 ﻿package  com.quasimondo.geom
 {
 	import flash.display.Graphics;
+	import flash.geom.Matrix;
+	import flash.geom.Rectangle;
 	
 	import mx.effects.easing.Linear;
 	
@@ -323,7 +325,16 @@
 			return mp.length == 0 || !mp.isValidPath() ? new LinearPath() : mp.toLinearPath( segmentLength, mode );
 		}
 		
-		
+		override public function rotate( angle:Number, center:Vector2 = null ):GeometricShape
+		{
+			if ( center == null ) center = centroid;
+			for each ( var p:Vector2 in points )
+			{
+				p.rotateAround(angle, center );
+			}
+			dirty = true;
+			return this;
+		}
 		
 		override public function get length():Number
 		{
@@ -356,6 +367,21 @@
 				{
 					p = _points[int(i++)];
 					g.lineTo( p.x, p.y );
+				}
+			}
+		}
+		
+		public function drawWithOffset( g:Graphics, offset:Vector2 ):void
+		{
+			if ( _points.length > 0 )
+			{
+				var i:int = 0;
+				var p:Vector2 = _points[int(i++)];
+				g.moveTo( p.x + offset.x, p.y + offset.y );
+				while ( i < _points.length )
+				{
+					p = _points[int(i++)];
+					g.lineTo( p.x + offset.x, p.y + offset.y );
 				}
 			}
 		}
@@ -445,7 +471,7 @@
 				//else
 				//	mp.deletePointAt(0);
 			} 
-			mp.setLoop( loop );
+			mp.setClosed( loop );
 			return mp;
 		}
 		
@@ -506,10 +532,70 @@
 				v1.plus(path.getPointAt(path.pointCount-1));
 				path.getPointAt(path.pointCount-2).setValue(v1);
 			}
-			path.setLoop(loop);
+			path.setClosed(loop);
 			
 			return path;	
 		}
+		
+		override public function applyTransformationMatrix( matrix:Matrix, clone:Boolean = false ):GeometricShape
+		{
+			var path:LinearPath = ( clone ? LinearPath(this.clone(true)) : this );
+			for each ( var p:Vector2 in path.points )
+			{
+				p.applyTransformationMatrix( matrix );
+			}
+			path.dirty = true;
+			return path;
 			
+		}
+		
+		override public function getBoundingRect( loose:Boolean = true ):Rectangle
+		{
+			var p:Vector2 = points[0];
+			var minX:Number = p.x;
+			var maxX:Number = minX;
+			var minY:Number = p.y;
+			var maxY:Number = minY;
+			for ( var i:int = 1; i< points.length; i++ )
+			{
+				p = points[i];
+				if ( p.x < minX ) minX = p.x;
+				else if ( p.x > maxX ) maxX = p.x;
+				if ( p.y < minY ) minY = p.y;
+				else if ( p.y > maxY ) maxY = p.y;
+			}
+			
+			return new Rectangle( minX, minY, maxX - minX, maxY - minY );
+		}
+		
+		public function get centroid():Vector2
+		{
+			var sx:Number = 0;
+			var sy:Number = 0;
+			var a:Number = 0;
+			
+			var p1:Vector2;
+			var p2:Vector2;
+			var f:Number;
+			
+			for ( var i:int = 0; i< points.length; i++ )
+			{
+				p1 = points[i];
+				p2 = points[int((i+1) % points.length)];
+				a += ( f = p1.x * p2.y - p2.x * p1.y );
+				sx += (p1.x + p2.x) * f;
+				sy += (p1.y + p2.y) * f;
+			}
+			
+			f = 1 / ( 3 * a );
+			
+			
+			return new Vector2( sx * f, sy * f );
+		}
+		
+		override public function clone( deepClone:Boolean = true ):GeometricShape
+		{
+			return LinearPath.fromVector( points, deepClone );
+		}
 	}
 }

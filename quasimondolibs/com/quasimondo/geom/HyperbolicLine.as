@@ -154,7 +154,7 @@ package com.quasimondo.geom
 			   }
 			  
 			  var arc:Arc = new Arc( C.toVector2().multiply(radius).plusXY(x_center,y_center), r*radius, alpha,beta );
-			  mp = arc.toMixedPath( addFirst );
+			  mp = arc.toMixedPathQuadratic( addFirst );
 			}
 			return mp;
 		  } 

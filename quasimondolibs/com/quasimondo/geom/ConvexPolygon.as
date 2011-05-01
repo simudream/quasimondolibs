@@ -25,11 +25,6 @@ package com.quasimondo.geom
 		public static const CONVEX_CCW:String = "CONVEX_CCW";
 		public static const CONVEX_CW:String = "CONVEX_CW";
 		
-		public static const HATCHING_MODE_SAWTOOTH:String = "SAWTOOTH";
-		public static const HATCHING_MODE_ZIGZAG:String = "ZIGZAG";
-		public static const HATCHING_MODE_CRISSCROSS:String = "CRISSCROSS";
-		
-		
 		private var points:Vector.<Vector2>;
 		private var dirty:Boolean = true;
 		private var _boundingRect:Rectangle;
@@ -158,7 +153,7 @@ package com.quasimondo.geom
 			return points.length;
 		}
 		
-		public function get circumference():Number
+		override public function get length():Number
 		{
 			var result:Number = 0;
 			for ( var i:int = 0; i< points.length; i++ )
@@ -170,7 +165,7 @@ package com.quasimondo.geom
 		
 		override public function getPointAtOffset( offset:Number ):Vector2
 		{
-			return getPoint( offset / circumference );
+			return getPoint( offset / length );
 		}
 		
 		override public function getPoint( t:Number ):Vector2
@@ -179,7 +174,7 @@ package com.quasimondo.geom
 		    if ( t<0) t+= 1;
 		    
 			var side:LineSegment;
-			var totalLength:Number = circumference;
+			var totalLength:Number = length;
 			var t_sub:Number;
 			
 			for ( var i:int = 0; i< points.length; i++ )
@@ -608,7 +603,7 @@ package com.quasimondo.geom
 				path.addControlPoint( p2.getPlus( v1 ) );
 			}
 			
-			path.setLoop( true );
+			path.setClosed( true );
 				
 			return path;	
 		}
@@ -650,7 +645,7 @@ package com.quasimondo.geom
 			
 			
 			var mp:MixedPath = new MixedPath();
-			mp.setLoop( true );
+			mp.setClosed( true );
 			
 			for ( i = 0; i < sides.length; i++ )
 			{
@@ -680,6 +675,23 @@ package com.quasimondo.geom
 		}
 		
 		override public function draw( canvas:Graphics ):void
+		{
+			if ( dirty )
+			{
+				updateConvexHull()
+			}
+			
+			if ( points.length > 0 )
+			{
+				canvas.moveTo( Vector2(points[points.length-1]).x, Vector2(points[points.length-1]).y );
+				for (var i:int=0;i<points.length;i++)
+				{
+					canvas.lineTo( Vector2(points[i]).x, Vector2(points[i]).y );
+				}
+			} 
+		}
+		
+		override public function export( canvas:IGraphics ):void
 		{
 			if ( dirty )
 			{
@@ -941,7 +953,7 @@ package com.quasimondo.geom
 			return this;
 		}
 		
-		public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):ConvexPolygon
+		override public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):GeometricShape
 		{
 			if ( center == null ) center = centroid;
 			for each ( var p:Vector2 in points )
@@ -1131,7 +1143,7 @@ package com.quasimondo.geom
 		}
 		
 		
-		public function getHatchingPath( distance:Number, angle:Number, offsetFactor:Number, mode:String = HATCHING_MODE_ZIGZAG ):LinearPath
+		public function getHatchingPath( distance:Number, angle:Number, offsetFactor:Number, mode:String = HatchingMode.ZIGZAG ):LinearPath
 		{
 			if ( distance == 0 ) return null;
 			distance = Math.abs( distance );
@@ -1192,8 +1204,8 @@ package com.quasimondo.geom
 					}
 					
 					path.addPoint(pts.points[1-zigzag]);
-					if ( mode != HATCHING_MODE_SAWTOOTH ) path.addPoint(pts.points[zigzag]);
-					if ( mode != HATCHING_MODE_CRISSCROSS	) zigzag = 1 - zigzag;
+					if ( mode != HatchingMode.SAWTOOTH ) path.addPoint(pts.points[zigzag]);
+					if ( mode != HatchingMode.CRISSCROSS	) zigzag = 1 - zigzag;
 				}
 				line.translate( normalOffset );
 			}

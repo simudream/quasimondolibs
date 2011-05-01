@@ -411,6 +411,25 @@ package com.quasimondo.geom
 			return this;
 		}
 		
+		override public function rotate( angle:Number, center:Vector2 = null ):GeometricShape
+		{
+			if ( center == null ) center = p1.getClone();
+			p1.rotateAround( angle, center );
+			p2.rotateAround( angle, center );
+			c1.rotateAround( angle, center );
+			c2.rotateAround( angle, center );
+			return this;
+		}
+		
+		override public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):GeometricShape
+		{
+			if ( center == null ) center = p1.getClone();
+			p1.minus( center ).multiplyXY( factorX, factorY ).plus( center );
+			c1.minus( center ).multiplyXY( factorX, factorY ).plus( center );
+			c2.minus( center ).multiplyXY( factorX, factorY ).plus( center );
+			p2.minus( center ).multiplyXY( factorX, factorY ).plus( center );
+			return this;
+		}
 		
 		public function getPoints( n:int ):Array
 		{
@@ -890,7 +909,100 @@ package com.quasimondo.geom
 	        return w;
 	    }
 		
+		/**
+		 * Converts a cubic B&eacute;zier to a quadratic one, using the
+		 * <a href="http://www.caffeineowl.com/graphics/2d/vectorial/cubic2quad01.html#mid-point-approx">mid-point
+		 * approximation</a>
+		 * 
+		 * Author: Adrian Colomitchi
+		 * http://www.caffeineowl.com/graphics/2d/vectorial/index.html
+		 */
+		public function toBezier2( cloneEndpoints:Boolean = true):Bezier2
+		{
+			var p0x:Number = ( 3 * c1.x - p1.x)/2.0;
+			var p0y:Number = ( 3 * c1.y - p1.y)/2.0;
+			
+			var p1x:Number = ( 3 * c2.x - p2.x )/2.0;
+			var p1y:Number = ( 3 * c2.y - p2.y )/2.0;
+			return new Bezier2( cloneEndpoints ? p1.getClone() : p1, new Vector2( (p0x+p1x)/2, (p0y+p1y)/2), cloneEndpoints ? p2.getClone() : p2 )
+		}
 		
+		/**
+		 * Subdivides a cubic B&eacute;zier at a given value for the curve's parameter.
+		 * The method uses de Casteljau algorithm.
+		 * Author: Adrian Colomitchi
+		 * http://www.caffeineowl.com/graphics/2d/vectorial/index.html
+		 */
+		
+		public function getSplitAtT( t:Number, clonePoints:Boolean = true ):Vector.<Bezier3>
+		{
+			var result:Vector.<Bezier3> = new Vector.<Bezier3>();
+			if ( t == 0 || t == 1 )
+			{
+				result.push( clonePoints ? Bezier3(this.clone()) : this );
+			}
+			if ( t<=0 || t>=1) return result;
+			
+			var p0x:Number = p1.x + ( t * (c1.x - p1.x ));
+			var p0y:Number = p1.y + ( t * (c1.y - p1.y ));
+			var p1x:Number = c1.x + ( t * (c2.x - c1.x ));
+			var p1y:Number = c1.y + ( t * (c2.y - c1.y ));
+			var p2x:Number = c2.x + ( t * (p2.x - c2.x ));
+			var p2y:Number = c2.y + ( t * (p2.y - c2.y ));
+			
+			var p01x:Number = p0x + ( t * (p1x-p0x));
+			var p01y:Number = p0y + ( t * (p1y-p0y));
+			var p12x:Number = p1x + ( t * (p2x-p1x));
+			var p12y:Number = p1y + ( t * (p2y-p1y));
+			
+			var dpx:Number = p01x+(t*(p12x-p01x));
+			var dpy:Number = p01y+(t*(p12y-p01y));
+			var t_p:Vector2 = new Vector2( dpx, dpy );
+			result.push( new Bezier3( clonePoints ? p1.getClone() : p1, new Vector2( p0x, p0y ), new Vector2( p01x, p01y ), t_p));
+			result.push( new Bezier3( clonePoints ? t_p.getClone() : t_p, new Vector2( p12x, p12y ), new Vector2( p2x, p2y ),  clonePoints ? p2.getClone() : p2));
+			
+			return result;
+		}
+		
+		/**
+		 * Subdivides a cubic B&eacute;zier in more than one subdivision points.
+		 * The method calls repeatedly the 
+		 * {@link #getSplitAtT( t:Number, clonePoints:Boolean = true) single
+		 * point split} method.
+		 * @param t the array of curve parameters where to split the curve. 
+		 * Of course, they need to be in the [0..1) range (1.0 excluded) - otherwise
+		 * unpredictable results might happen (in fact they are quite predictable, by I'm
+		 * too lazy to check the effect). The method does not check this. Uh, by the
+		 * way, the params are supposed to be sorted in ascending order: the method
+		 * calls <code>java.utils.Arrays.sort(double[])</code> to make sure they are
+		 * (so, if they are not, be warned - the method will have a side effect
+		 * on the parameters).
+		 * @param clonePoints sets if existing curve pointgs should be cloned or reused 
+		 * 
+		 * * Author: Adrian Colomitchi
+		 * http://www.caffeineowl.com/graphics/2d/vectorial/index.html
+		 */
+		public function getSplitsAtTs( t:Vector.<Number>, clonePoints:Boolean = true ):Vector.<Bezier3>
+		{
+			t.sort( function( a:Number, b:Number ):int{ return ( a < b ? -1 : ( a > b ? 1 : 0))});
+			
+			var current:Bezier3 = this;
+			var last_t:Number = 0;
+			var result:Vector.<Bezier3> = new Vector.<Bezier3>();
+			for ( var i:int = 0; i < t.length; i++ )
+			{
+				var parts:Vector.<Bezier3> = current.getSplitAtT( (t[i] - last_t) / ( 1 - last_t ), clonePoints );
+				if ( parts.length > 0 )
+				{
+					result.push( parts[0] );
+					current = ( parts.length == 2 ? parts[1] : parts[0] );
+				}
+				last_t = t[i];
+			}
+			
+			if ( parts.length == 2 ) result.push( parts[1] );
+			return result;
+		}
 		
 		public function toString( ):String
 		{
