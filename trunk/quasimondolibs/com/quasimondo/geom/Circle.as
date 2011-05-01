@@ -92,6 +92,12 @@
 			return ( r==c2.r && c.x == c2.c.x && c.y == c2.c.y);
 		}
 		
+		override public function translate( p:Vector2 ):GeometricShape
+		{
+			c.plus( p );
+			return this;
+		}
+		
 		public function snaps( c2:Circle ):Boolean
 		{
 			return ( Math.abs(r-c2.r) < SNAP_DISTANCE && Math.abs(c.x-c2.c.x) < SNAP_DISTANCE  && Math.abs(c.y -c2.c.y) < SNAP_DISTANCE  );
@@ -180,7 +186,7 @@
 				path.addPoint( a2.getPlus(c) );
 			}
 			path.deletePointAt(path.pointCount-1);
-			path.setLoop( true );
+			path.setClosed( true );
 			
 			return path;
 		}
@@ -196,6 +202,46 @@
 			return r * r * Math.PI;
 		}
 		
+		override public function export( canvas:IGraphics ):void 
+		{
+			var x1:Number, y1:Number, grad:Number, segm:Number;
+			
+			var s1:Number = startAngle;
+			var s2:Number = endAngle;
+			var sgm:Number = drawingSegments;
+			
+			if (s1 == s2) 
+			{
+				canvas.moveTo(c.x, c.y);
+				canvas.drawCircle( c.x, c.y, r );
+				return;
+			} else {
+				s1>s2 ? s1 -= 360 : "";
+				x1 = r*Math.cos(s1*rad)+c.x;
+				y1 = r*Math.sin(s1*rad)+c.y;
+				grad = s2-s1;
+				segm = grad/sgm;
+				canvas.moveTo(c.x, c.y);
+				canvas.lineTo(x1, y1);
+			}
+			
+			for (var s:Number = segm+s1; s<grad+.1+s1; s += segm) {
+				var x2:Number = r*Math.cos((s-segm/2)*rad)+c.x;
+				var y2:Number = r*Math.sin((s-segm/2)*rad)+c.y;
+				var x3:Number = r*Math.cos(s*rad)+c.x;
+				var y3:Number = r*Math.sin(s*rad)+c.y;
+				// begin tnx 2 Robert Penner
+				var cx:Number = 2*x2-.5*(x1+x3);
+				var cy:Number = 2*y2-.5*(y1+y3);
+				canvas.curveTo(cx, cy, x3, y3);
+				// end tnx 2 Robert Penner :)
+				x1 = x3;
+				y1 = y3;
+			}
+			if (grad != 360) {
+				canvas.lineTo(c.x, c.y);
+			}
+		}
 		//
 		override public function draw( canvas:Graphics ):void 
 		{
@@ -379,6 +425,202 @@
 			
 			return new Circle(c.x + s * dx, c.y + s * dy, circle.r * Math.abs( s ) );
 			
+		}
+		
+		/*
+			returns up to 4 tangent line segments
+			
+			Code from "Geometric Tools for Computer Graphics"
+			by Philip J. Schneider & David H. Eberly
+		*/
+		public function getTangents( circle:Circle ):Vector.<LineSegment>
+		{
+			var result:Vector.<LineSegment> = new Vector.<LineSegment>();
+			
+			if ( circle.circleIsInside( this ) || this.circleIsInside( circle ) ) return result;
+			
+			var w:Vector2 = circle.c.getMinus( c );
+			var wLenSqr:Number = w.length_squared;
+			var rSum:Number = r + circle.r;
+			
+			var l1p2:Vector2 = new Vector2();
+			var l2p2:Vector2 = new Vector2();
+			var l3p2:Vector2 = new Vector2();
+			var l4p2:Vector2 = new Vector2();
+			
+			const epsilon:Number = 0.00001;
+			var a:Number, oms:Number;
+			var rDiff:Number = circle.r - r;
+			if ( Math.abs(rDiff) >= epsilon )
+			{
+				var R0sqr:Number = r * r;
+				var R1sqr:Number = circle.r * circle.r;
+				var c0:Number = -R0sqr
+				var c1:Number = 2 * R0sqr;
+				var c2:Number = circle.r * circle.r - R0sqr;
+				var invc2:Number = 1 / c2;
+				var discr:Number = Math.sqrt( Math.abs(c1 * c1 - 4 * c0 * c2));
+				var s:Number = -0.5 * (c1 + discr) * invc2;
+			
+				var l1p1:Vector2 = new Vector2(c.x + s * w.x, c.y + s * w.y);
+				
+				var l2p1:Vector2 = l1p1.getClone();
+				
+			
+				if ( s >= 0.5 )
+				{
+					a = Math.sqrt( Math.abs(wLenSqr - R0sqr / (s * s)));
+				} else {
+					oms = 1 - s;
+					a = Math.sqrt( Math.abs( wLenSqr - R1sqr / (oms * oms)));
+				}
+				getDirections ( w, a, l1p2, l2p2 );
+			
+				s = -0.5 * (c1 - discr) * invc2;
+					
+				var l3p1:Vector2 = new Vector2(c.x + s * w.x, c.y + s * w.y);
+				var l4p1:Vector2 = l3p1.getClone();
+				
+				
+				if ( s >= 0.5)
+				{
+					a = Math.sqrt( Math.abs(wLenSqr - R0sqr / (s * s)));
+				} else {
+					oms = 1 - s;
+					a = Math.sqrt( Math.abs(wLenSqr - R1sqr / (oms * oms)));
+				}
+				
+				getDirections ( w, a, l3p2, l4p2 );
+			} else {
+				
+				var mid:Vector2 = new Vector2( 0.5 * (c.x + circle.c.x), 0.5 * (c.y + circle.c.y) );
+				a =  Math.sqrt( Math.abs(wLenSqr - 4 * r * r));
+				
+				getDirections ( w, a, l1p2, l2p2 ) 
+				l1p1 = mid.getClone();
+				l2p1 = mid.getClone();
+				var invwlen:Number = 1 / Math.sqrt(wLenSqr);
+				w.x *= invwlen;
+				w.y *= invwlen;
+				
+				l3p1 = new Vector2(mid.x + r * w.y, mid.y - r * w.x);
+				l3p2 = w.getClone();
+				l4p1 = new Vector2(mid.x - r * w.y, mid.y + r * w.x);
+				l4p2 = w.getClone();
+			}	
+			
+			var ls:LineSegment = LineSegment.fromPointAndAngleAndLength( l1p1, l1p2.angle, wLenSqr ,true );
+			result.push( new LineSegment(ls.getClosestPoint( c ),ls.getClosestPoint( circle.c  )));
+			
+			ls = LineSegment.fromPointAndAngleAndLength(  l2p1, l2p2.angle, wLenSqr ,true );
+			result.push( new LineSegment(ls.getClosestPoint( c ),ls.getClosestPoint( circle.c  )));
+			
+			var intersects:Boolean = ( result[0].intersect( result[1] ).points.length == 1 );
+			if (this.circleIsInsideOrIntersects( circle ))
+			{
+				if ( intersects )
+				{
+					result.length = 0;
+				} else {
+					return result;
+				}
+			}
+			
+			ls = LineSegment.fromPointAndAngleAndLength(   l3p1, l3p2.angle, wLenSqr ,true );
+			if ( intersects )
+			{
+				result.unshift( new LineSegment(ls.getClosestPoint( c ),ls.getClosestPoint( circle.c  )));
+			} else {
+				result.push( new LineSegment(ls.getClosestPoint( c ),ls.getClosestPoint( circle.c  )));
+			}
+			
+			ls = LineSegment.fromPointAndAngleAndLength(   l4p1, l4p2.angle, wLenSqr ,true );
+			if ( intersects )
+			{
+				result.unshift( new LineSegment(ls.getClosestPoint( c ),ls.getClosestPoint( circle.c  )));
+			} else {
+				result.push( new LineSegment(ls.getClosestPoint( c ),ls.getClosestPoint( circle.c  )));
+			}
+			
+			
+			return result;		
+		}
+		
+		private function getDirections( w:Vector2, a:Number, dir0:Vector2, dir1:Vector2 ):void
+		{
+			var aSqr:Number = a * a;
+			var wxSqr:Number = w.x * w.x;
+			var wySqr:Number = w.y * w.y;
+			var c2:Number = wxSqr + wySqr;
+			var invc2:Number = 1 / c2;
+			var c0:Number, c1:Number, invwx:Number, invwy:Number, discr:Number; 
+			
+			if ( Math.abs(w.x) >= Math.abs(w.y) )
+			{
+				c0 = aSqr - wxSqr;
+				c1 = -2 * a * w.y;
+				discr = Math.sqrt( Math.abs(c1 * c1 - 4 * c0 * c2));
+				invwx = 1 / w.x;
+				dir0.y = -0.5 * (c1 + discr) * invc2;
+				dir0.x = (a - w.y * dir0.y) * invwx;
+				dir1.y = -0.5 * (c1 - discr) * invc2;
+				dir1.x = (a - w.y * dir1.y) * invwx;
+			} else {
+				c0 = aSqr - wySqr;
+				c1 = -2 * a * w.x;
+				discr = Math.sqrt( Math.abs(c1 * c1 - 4 * c0 * c2));
+				invwy = 1 / w.y;
+				dir0.x = -0.5 * (c1 + discr) * invc2;
+				dir0.y = (a - w.x * dir0.x) * invwy;
+				dir1.x = -0.5 * (c1 - discr) * invc2;
+				dir1.y = (a - w.x * dir1.x) * invwy;
+			}
+		}
+		
+		public function getArcs( poly:Polygon, inner:Boolean = true, outer:Boolean = false ):Vector.<Arc>
+		{
+			var result:Vector.<Arc> = new Vector.<Arc>();
+			var intersections:Intersection = this.intersect( poly );
+			if ( intersections.points.length == 0 )
+			{
+				if ( poly.isInside(c) && poly.distanceToVector2( c ) >= r )
+				{
+					result.push( new Arc( c.getClone(),c.getPlusXY(r,0),c.getPlusXY(r,0)));
+				}
+			} else {
+				
+				intersections.points.sort( function ( a:Vector2, b:Vector2 ):int
+				{
+					var a1:Number = c.angleTo( a );
+					var a2:Number = c.angleTo( b );
+					if ( a1 < a2 ) return -1;
+					if ( a1 > a2 ) return 1;
+					return 0;
+				});
+				
+				for ( var i:int = 0; i < intersections.points.length; i++ )
+				{
+					result.push( new Arc( c.getClone(), intersections.points[i].getClone(), intersections.points[(i+1) % intersections.points.length ].getClone()) );
+				}
+				
+				for ( i = result.length; --i > -1; )
+				{
+					var inside:Boolean =  poly.isInside( result[i].getPoint( 0.5 ) );
+					if ( !((inside && inner) || ( !inside && outer ))  )
+					{
+						result.splice( i,1 );	
+					}
+				}
+			}
+			return result;
+		}
+		
+		override public function clone(deepClone:Boolean=true):GeometricShape
+		{
+			if ( deepClone )
+				return new Circle( c.x, c.y, r );
+			else 
+				return new Circle( c, r );
 		}
 		
 	}

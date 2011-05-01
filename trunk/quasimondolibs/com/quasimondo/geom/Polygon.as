@@ -10,6 +10,7 @@ package com.quasimondo.geom
 	import com.quasimondo.geom.pointStructures.KDTreeNode;
 	
 	import flash.display.Graphics;
+	import flash.geom.Matrix;
 	import flash.geom.Rectangle;
 	
 	public class Polygon extends GeometricShape implements IIntersectable, ICountable, IPolygonHelpers
@@ -47,6 +48,18 @@ package com.quasimondo.geom
 			for ( var i:int = 0; i < points.length; i++ )
 			{
 				cv.points.push( Vector2(points[i]) );
+			}
+			cv.tree.insertPoints( cv.points );
+			return cv;
+		}
+		
+		public static function fromXML( xml:XML  ):Polygon
+		{
+			var cv:Polygon = new Polygon();
+			var pts:Array = xml.@points.split(",");
+			for ( var i:int = 0; i < pts.length; i+=2 )
+			{
+				cv.points.push( new Vector2( Number(pts[i]), Number( pts[i+1])) );
 			}
 			cv.tree.insertPoints( cv.points );
 			return cv;
@@ -163,6 +176,16 @@ package com.quasimondo.geom
 			tree.insertPoint( p );
 		}
 		
+		public function removePointAt( index:int ):void
+		{
+			dirty = true;
+			index = int(((index % points.length) + points.length)% points.length);
+			var p:Vector2 = points[index];
+			tree.removePoint( p );
+			points.splice(index,1);
+			
+		}
+		
 		
 		public function getPointAt( index:int ):Vector2
 		{
@@ -237,6 +260,29 @@ package com.quasimondo.geom
 			}
 			return -1;
 		}
+		
+		public function getGradientMatrix( angle:Number = 0):Matrix
+		{
+			var m:Matrix = new Matrix();
+			
+			if ( pointCount < 3 ) return m;
+			
+			var p:Polygon = Polygon(clone());
+			if ( angle != 0 ) p.rotate(-angle)
+			var r:Rectangle = p.getBoundingRect();
+			
+			m.createGradientBox( 200,200 );
+			m.translate( -100, -100 );
+			m.scale( r.width / 200, r.height / 200 );
+			if ( angle != 0 ) m.rotate( angle );
+			
+			var r2:Polygon = Polygon.fromRectangle(r);
+			if ( angle != 0 ) r2.rotate( angle, centroid );
+			var c:Vector2 = r2.centroid;
+			m.translate( c.x, c.y );
+			return m;
+			
+		}	
 		
 		//warning this can also be a negative value!
 		public function get area():Number
@@ -793,7 +839,7 @@ package com.quasimondo.geom
 					}
 				}
 				
-				if ( ( bestSplitPolygon1.classification == CONVEX_CCW || bestSplitPolygon1.classification == CONVEX_CW ) )
+				if ( bestSplitPolygon1 != null && ( bestSplitPolygon1.classification == CONVEX_CCW || bestSplitPolygon1.classification == CONVEX_CW ) )
 				{
 						result.splice( index, 1 );
 						result.unshift( bestSplitPolygon1 );
@@ -804,7 +850,7 @@ package com.quasimondo.geom
 							result.push( bestSplitPolygon2 );
 						}
 						index++;
-				} else if ( ( bestSplitPolygon2.classification == CONVEX_CCW || bestSplitPolygon2.classification == CONVEX_CW ) )
+				} else if (  bestSplitPolygon2 != null && ( bestSplitPolygon2.classification == CONVEX_CCW || bestSplitPolygon2.classification == CONVEX_CW ) )
 				{
 					result.splice( index, 1 );
 					result.unshift( bestSplitPolygon2 );
@@ -928,6 +974,23 @@ package com.quasimondo.geom
 				}
 			}
 			return closest;
+		}
+		
+		public function distanceToVector2( p:Vector2 ):Number
+		{
+			var closest:Vector2 = getSide( 0 ).getClosestPoint( p );
+			var minDist:Number = closest.squaredDistanceToVector( p );
+			var dist:Number;
+			var pt:Vector2;
+			for ( var i:int = 1; i < points.length; i++ )
+			{
+				pt = getSide( i ).getClosestPoint( p );
+				dist = pt.squaredDistanceToVector( p );
+				if ( dist < minDist ) {
+					minDist = dist ;
+				}
+			}
+			return Math.sqrt( minDist);
 		}
 		
 		public function getClosestIndexToClosestPoint( p:Vector2 ):int
@@ -1173,7 +1236,7 @@ package com.quasimondo.geom
 				path.addControlPoint( p2.getPlus( v1 ) );
 			}
 			
-			path.setLoop( true );
+			path.setClosed( true );
 			
 			return path;	
 		}
@@ -1184,6 +1247,75 @@ package com.quasimondo.geom
 			return mp;
 		}
 		
+		public function getHatchingPath( distance:Number, angle:Number, offsetFactor:Number, mode:String = HatchingMode.ZIGZAG ):LinearPath
+		{
+			if ( distance == 0 ) return null;
+			distance = Math.abs( distance );
+			angle %= Math.PI;
+			offsetFactor %= 2;
+			
+			var bounds:Rectangle = getBoundingRect();
+			var lineLength:Number = 3 * Math.sqrt( bounds.width * bounds.width + bounds.height *  bounds.height );
+			
+			
+			var center:Vector2 = centroid;
+			var line:LineSegment = LineSegment.fromPointAndAngleAndLength( center, angle,lineLength,true);
+			var normalOffset:Vector2 = line.getNormalAtPoint( center );
+			
+			var sortedPoints:Array = [];
+			for ( var i:int = 0; i < points.length; i++ )
+			{
+				var offset:Number = line.distanceToPoint( points[i]);
+				var direction:Number = ( line.isLeft( points[i] ) > 0 ? 1 : -1 );
+				sortedPoints.push( { index:i, d: direction * offset } );
+			}
+			
+			sortedPoints.sort( function( a:Object, b:Object ):int{
+				if ( a.d > b.d ) return 1;
+				if ( a.d < b.d ) return -1;
+				return 0;
+			});
+			
+			
+			var startIndex:int = sortedPoints[0].index;
+			var endIndex:int = sortedPoints[sortedPoints.length-1].index ;
+			
+			var pts:Intersection;
+			var middle:Vector2;
+			var startLength:Number =  - (Math.abs(sortedPoints[0].d) - (Math.abs(sortedPoints[0].d) % distance) - distance * offsetFactor);
+			
+			normalOffset.newLength( startLength );
+			line.translate( normalOffset );
+			normalOffset.newLength(-distance);
+			
+			
+			var path:LinearPath = new LinearPath();
+			var zigzag:int = 0;
+			var startLeft:Boolean = ( Math.abs(startLength) % (distance * 4 ) < distance * 2 );
+			
+			var maxIterations:int = 2 + points[startIndex].distanceToVector(points[endIndex]) / distance;
+			while ( maxIterations-- > -1)
+			{
+				pts = this.intersect( line );
+				if ( pts.points.length == 2) 
+				{
+					middle = pts.points[0].getLerp( pts.points[1], 0.5 );
+					if ( (pts.points[0].isLeft(middle,middle.getPlus(normalOffset)) < 0) == startLeft )
+					{
+						var tmp:Vector2 = pts.points[0];
+						pts.points[0] = pts.points[1];
+						pts.points[1] = tmp;
+					}
+					
+					path.addPoint(pts.points[1-zigzag]);
+					if ( mode != HatchingMode.SAWTOOTH ) path.addPoint(pts.points[zigzag]);
+					if ( mode != HatchingMode.CRISSCROSS	) zigzag = 1 - zigzag;
+				}
+				line.translate( normalOffset );
+			}
+			
+			return path;
+		}
 		
 		public function getScribblePath( minFactor:Number, maxFactor:Number ):MixedPath
 		{
@@ -1219,7 +1351,7 @@ package com.quasimondo.geom
 				path.addControlPoint( p2.getPlus( v1 ) );
 			}
 			
-			path.setLoop( true );
+			path.setClosed( true );
 			
 			return path;	
 		}
@@ -1382,6 +1514,47 @@ package com.quasimondo.geom
 			} 
 		}
 		
+		override public function export( canvas:IGraphics ):void
+		{
+			
+			if ( points.length > 0 )
+			{
+				canvas.moveTo( points[int(points.length-1)].x, points[int(points.length-1)].y );
+				for (var i:int=0; i < points.length; i++ )
+				{
+					canvas.lineTo( points[i].x, points[i].y );
+				}
+			} 
+		}
+		
+		
+		public function drawWithOffset( canvas:Graphics, offset:Vector2 ):void
+		{
+			
+			if ( points.length > 0 )
+			{
+				canvas.moveTo( points[int(points.length-1)].x + offset.x, points[int(points.length-1)].y + offset.y);
+				for (var i:int=0; i < points.length; i++ )
+				{
+					canvas.lineTo( points[i].x + offset.x, points[i].y + offset.y);
+				}
+			} 
+		}
+		
+		public function getLinearPathSegment( startIndex:int, endIndex:int, clonePoints:Boolean = true ):LinearPath
+		{
+			endIndex = ((endIndex % pointCount )+ pointCount) % pointCount;
+			var p:LinearPath = new LinearPath();
+			var index:int = startIndex;
+			while ( index != endIndex )
+			{
+				p.addPoint( clonePoints ? getPointAt( index ).getClone() : getPointAt( index ) );
+				index = (index+1) % pointCount;
+			}
+			p.addPoint( clonePoints ? getPointAt( index ).getClone() : getPointAt( index ) );
+			return p;
+		}
+		
 		public function invalidate():void
 		{
 			dirty = true;
@@ -1397,7 +1570,7 @@ package com.quasimondo.geom
 			return this;
 		}
 		
-		public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):Polygon
+		override public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):GeometricShape
 		{
 			if ( center == null ) center = centroid;
 			for each ( var p:Vector2 in points )
@@ -1433,6 +1606,76 @@ package com.quasimondo.geom
 				break;
 			}
 			return null;
+		}
+		
+		public function getTurningProfile( stepSize:Number = 1, center:Vector2 = null ):Vector.<Number>
+		{
+			if ( center == null ) center = centroid;
+			var result:Vector.<Number> = new Vector.<Number>;
+			var tstep:Number = stepSize / length;
+			for ( var t:Number = 0; t < 1; t+= tstep )
+			{
+				result.push( center.angleTo( getPoint(t)) );
+			}
+			return result;
+		}
+		
+		public function getNormalizedAngleProfile( bins:int = 256 ):Vector.<Number>
+		{
+			var angles:Vector.<Number> = new Vector.<Number>();
+			var lengths:Vector.<Number> = new Vector.<Number>();
+			var accumulatedLength:Number = 0;
+			var lastAngle:Number = getSide(0).angle;
+			for ( var i:int = 0; i < pointCount; i++)
+			{
+				var s:LineSegment = getSide(i);
+				angles.push( lastAngle - s.angle );
+				lastAngle = s.angle;
+				accumulatedLength += s.length;
+				lengths.push( accumulatedLength );
+			}
+			
+			var result:Vector.<Number> = new Vector.<Number>();
+			var currentAngle:Number = 0;
+			var step:Number = 0;
+			var maxStep:Number = length;
+			var stepSize:Number = maxStep / bins;
+			var currentIndex:int = 0;
+			while ( step < maxStep )
+			{
+				while ( step > lengths[currentIndex] )
+				{
+					currentIndex++;
+					currentAngle = angles[currentIndex];
+				}
+				result.push( currentAngle );
+				step += stepSize;
+			}
+			
+			return result;
+		}
+		
+		public function get majorAngle():Number
+		{
+			var centerOfMass:Vector2 = centroid;
+			
+			var dx_sum:Number = 0;
+			var dy_sum:Number = 0;
+			var dxy_sum:Number = 0;
+			
+			for each ( var p:Vector2 in points )
+			{
+				dx_sum += Math.pow(p.x - centerOfMass.x,2);
+				dy_sum += Math.pow(p.y - centerOfMass.y,2);
+				dxy_sum += (p.x - centerOfMass.x) * (p.y - centerOfMass.y)
+			}
+			var dy:Number = 2*dxy_sum;
+			var dx:Number = dx_sum  - dy_sum + Math.sqrt(Math.pow(dx_sum-dy_sum,2) + Math.pow(2 * dxy_sum,2) );
+			if ( dy == 0 && dx == 0 )
+			{
+				return ( dx_sum >= dy_sum ? 0 : Math.PI * 0.5 );
+			}
+			return Math.atan2( dy, dx );
 		}
 		
 		public function detangle():void
@@ -1525,7 +1768,7 @@ package com.quasimondo.geom
 			{
 				path.addPoint( points[i] );
 			}
-			path.setLoop(true);
+			path.setClosed(true);
 			return path;
 		}
 		
@@ -1558,6 +1801,10 @@ package com.quasimondo.geom
 			detangle();
 		}
 		
+		public function getAngleAt( index:int ):Number
+		{
+			return getPointAt( index ).cornerAngle( getPointAt( index-1 ), getPointAt( index+1 ));
+		}
 		
 		public function simplify( threshold:Number ):void
 		{
@@ -1650,7 +1897,15 @@ package com.quasimondo.geom
 			dirty = true;	
 		}
 		
-		
+		override public function reflect( lineSegment:LineSegment ):GeometricShape
+		{
+			for ( var i:int = 0; i < points.length; i++ )
+			{
+				points[i] = lineSegment.mirrorPoint( points[i] );
+			}
+			dirty = true;
+			return this;
+		}
 		
 		override public function get type():String
 		{
@@ -1660,6 +1915,18 @@ package com.quasimondo.geom
 		public function toString():String
 		{
 			return "Polygon.fromArray(["+points.toString()+"])";
+		}
+		
+		public function toXML():XML
+		{
+			var xml:XML = <Polygon points=""/>;
+			var pts:Array = [];
+			for ( var i:int = 0; i < points.length; i++ )
+			{
+				pts.push(" "+points[i].x,points[i].y);
+			}
+			xml.@points = pts.toString();
+			return xml;
 		}
 		
 	}

@@ -1,6 +1,7 @@
 ﻿package com.quasimondo.geom
 {
 	import flash.display.Graphics;
+	import flash.geom.Matrix;
 	import flash.geom.Rectangle;
 	
 	public class GeometricShape implements IIntersectable
@@ -35,6 +36,11 @@
 			throw new Error("Must override drawExtras!");
 		}
 		
+		public function export( g:IGraphics ):void
+		{
+			throw new Error("Must override export!");
+		}
+		
 		public function draw( g:Graphics ):void
 		{
 			throw new Error("Must override draw!");
@@ -53,6 +59,21 @@
 		public function moveToEnd ( g: Graphics ): void
 		{
 			throw new Error("Must override moveToEnd!");
+		}
+		
+	 	public function exportDrawTo ( g: IGraphics ):void
+		{
+			throw new Error("Must override exportDrawTo!");
+		}
+		
+		public function exportMoveToStart ( g: IGraphics ):void
+		{
+			throw new Error("Must override exportMoveToStart!");
+		}
+		
+		public function exportMoveToEnd ( g: IGraphics ): void
+		{
+			throw new Error("Must override exportMoveToEnd!");
 		}
 		
 		public function hasPoint( v:Vector2 ):Boolean
@@ -97,6 +118,12 @@
 			return null;
 		}
 		
+		public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):GeometricShape
+		{
+			throw new Error("Must override scale!");
+			return null;
+		}
+		
 		public function getBoundingRect( loose:Boolean = true ):Rectangle
 		{
 			throw new Error("Must override getBoundingRect!");
@@ -125,6 +152,19 @@
 			throw new Error("Must override clone()");
 			return null;
 		}
+		
+		public function reflect( lineSegment:LineSegment ):GeometricShape
+		{
+			throw new Error("Must override reflect()");
+			return null;
+		}
+		
+		public function applyTransformationMatrix( matrix:Matrix, clone:Boolean = false ):GeometricShape
+		{
+			throw new Error("Must override applyTransformationMatrix()");
+			return null;
+		}
+		
 		
 	}
 }

@@ -75,7 +75,7 @@ package com.quasimondo.geom
 								break;
 							}
 						}
-						path.setLoop( true );
+						path.setClosed( true );
 						_shape.addShape( path )
 						_commands.splice( startIndex, i - startIndex + 1 );
 						startIndex = -1;

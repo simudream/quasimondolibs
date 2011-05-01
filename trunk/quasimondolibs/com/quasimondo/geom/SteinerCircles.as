@@ -38,7 +38,7 @@ package com.quasimondo.geom
 			var i:int;
 			
 			this.parentCircle = parentCircle;
-			this.circleCount = circleCount;
+			this.circleCount = Math.max(3,circleCount);
 			this.ratio = ratio;
 			
 			angleStep = Math.PI / circleCount;

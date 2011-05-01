@@ -38,6 +38,42 @@ package com.quasimondo.geom
 			}
 		}
 		
+		override public function translate(offset:Vector2):GeometricShape
+		{
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				shapes[i].translate( offset );
+			}
+			return this;
+		}
+		
+		override public function rotate(angle:Number, center:Vector2=null):GeometricShape
+		{
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				shapes[i].rotate(angle, center);
+			}
+			return this;
+		}
+		
+		override public function scale(factorX:Number, factorY:Number, center:Vector2 = null):GeometricShape
+		{
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				shapes[i].scale(factorX, factorY, center);
+			}
+			return this;
+		}
+		
+		override public function reflect(lineSegment:LineSegment):GeometricShape
+		{
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				shapes[i].reflect(lineSegment);
+			}
+			return this;
+		}
+		
 		public function clear():void
 		{
 			shapes.length = 0;
@@ -68,6 +104,14 @@ package com.quasimondo.geom
 			for ( var i:int = 0; i < shapes.length; i++ )
 			{
 				shapes[i].draw( canvas );
+			}
+		}
+		
+		override public function export( canvas:IGraphics ):void
+		{
+			for ( var i:int = 0; i < shapes.length; i++ )
+			{
+				shapes[i].export( canvas );
 			}
 		}
 		

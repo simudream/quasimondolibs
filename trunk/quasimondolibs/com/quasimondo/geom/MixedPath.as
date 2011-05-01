@@ -3,6 +3,8 @@ package com.quasimondo.geom
 	
 	import flash.display.Graphics;
 	import flash.geom.Rectangle;
+	
+	import spark.primitives.Line;
 
 	public class MixedPath extends GeometricShape implements IIntersectable, ICountable
 	{
@@ -12,7 +14,7 @@ package com.quasimondo.geom
 		static public const LINEARIZE_OVERSHOOT:int = 3;
 		static public const LINEARIZE_CENTER:int = 4;
 	
-		private var loop:Boolean;
+		private var _closed:Boolean;
 		private var points:Vector.<MixedPathPoint>;
 		private var segments:Vector.<GeometricShape>;
 		
@@ -38,7 +40,7 @@ package com.quasimondo.geom
 		public function MixedPath()
 		{
 			points = new Vector.<MixedPathPoint>();
-			loop = false;
+			_closed = false;
 			isValid = false;
 			dirty = true;
 		}
@@ -58,6 +60,21 @@ package com.quasimondo.geom
 				
 			}
 		}
+		
+		override public function export( g:IGraphics ):void
+		{
+			if ( dirty ) updateSegments();
+			
+			if (isValid)
+			{
+				GeometricShape(segments[0]).exportMoveToStart( g );
+				for (var i:int = 0; i < segments.length; i++ )
+				{
+					GeometricShape(segments[i]).exportDrawTo( g );
+				}
+				
+			}
+		}
 	
 		override public function drawExtras( g:Graphics, factor:Number = 1  ):void
 		{
@@ -72,7 +89,7 @@ package com.quasimondo.geom
 				
 			}
 			
-			for (var i:int = 0; i<points.length; i++)
+			for ( i = 0; i<points.length; i++)
 			{
 				if ( points[i].isControlPoint )
 				{
@@ -207,30 +224,8 @@ package com.quasimondo.geom
 		
 		public function get centroid():Vector2
 		{
-			var sx:Number = 0;
-			var sy:Number = 0;
-			var a:Number = 0;
-			
-			var p1:Vector2;
-			var p2:Vector2;
-			var f:Number;
-			
-			for ( var i:int = 0; i< points.length; i++ )
-			{
-				if ( !points[i].isControlPoint && !points[int((i+1) % points.length)].isControlPoint )
-				{
-					p1 = points[i];
-					p2 = points[int((i+1) % points.length)];
-					a += ( f = p1.x * p2.y - p2.x * p1.y );
-					sx += (p1.x + p2.x) * f;
-					sy += (p1.y + p2.y) * f;
-				}
-			}
-			
-			f = 1 / ( 3 * a );
-			
-			
-			return new Vector2( sx * f, sy * f );
+			var lp:LinearPath = toLinearPath( 3 );
+			return lp.centroid;
 		}
 		
 		public function updatePoint( ID:String, p:MixedPathPoint ):Boolean
@@ -253,8 +248,8 @@ package com.quasimondo.geom
 		{
 			if ( dirty ) updateSegments();
 			
-			if ( !isValid || (!loop && (t<0 || t>1))) return null;
-			if ( !loop )
+			if ( !isValid || (!_closed && (t<0 || t>1))) return null;
+			if ( !_closed )
 			{
 				if ( t > 1 ) t == 1;
 				if ( t < 0 ) t == 0;
@@ -285,7 +280,7 @@ package com.quasimondo.geom
 		{
 			if ( dirty ) updateSegments();
 			
-			if ( !isValid || (!loop && (offset<0 || offset>totalLength))) return null;
+			if ( !isValid || (!_closed && (offset<0 || offset>totalLength))) return null;
 			
 			offset = ((offset%totalLength)+totalLength)%totalLength;
 			
@@ -324,17 +319,22 @@ package com.quasimondo.geom
 			return len;
 		}
 		
-		public function setLoop( loop:Boolean ):Boolean
+		public function setClosed( loop:Boolean ):Boolean
 		{
-			this.loop = loop;
+			this._closed = loop;
 			return updateSegments();
+		}
+		
+		public function get closed():Boolean
+		{
+			return _closed;
 		}
 		
 		public function isValidPath( ):Boolean 
 		{
 			if ( points.length < 2 ) return false;
 			var cCounter:int=0;
-			for (var i:int = points.length + ( loop ? 1 :0 ); --i>-1;)
+			for (var i:int = points.length + ( _closed ? 1 :0 ); --i>-1;)
 			{
 				if ( points[ i%points.length ].isControlPoint )
 				{
@@ -424,7 +424,7 @@ package com.quasimondo.geom
 			if (!isValid) return false;
 			
 			
-			var traverse:int =  points.length + ( loop ? 0 :-1 );
+			var traverse:int =  points.length + ( _closed ? 0 :-1 );
 			
 			var currentIndex:int = 0;
 			while (  points[ currentIndex ].isControlPoint )
@@ -447,7 +447,10 @@ package com.quasimondo.geom
 					switch ( l )
 					{
 						case 2:
-							segments.push(new LineSegment( pointStack[0],pointStack[1]));
+							if ( !pointStack[0].snaps( pointStack[1]) ||  points.length == 2 )
+							{
+								segments.push(new LineSegment( pointStack[0],pointStack[1]));
+							}
 							pointStack.shift();
 							break;
 						case 3:
@@ -469,9 +472,101 @@ package com.quasimondo.geom
 			return true;
 		}
 		
+		public function getAngleAtCorner( index:int ):Number
+		{
+			if ( dirty ) 
+				if ( !updateSegments() ) return 0;
+			
+			var s1:GeometricShape, s2:GeometricShape;
+			//var a1:Number, a2:Number;
+			if ( _closed )
+			{
+				s1 = segments[(index+segments.length-1) % segments.length];
+				s2 = segments[index];
+			} else {
+				if ( index == 0 || index == segments.length)
+				{
+					return 0;
+				} else {
+					s1 = segments[index-1];
+					s2 = segments[index];
+				}
+			}
+			var pl:Vector2, pm:Vector2, pr:Vector2;
+			
+			if ( s1 is LineSegment )
+			{
+				pl = LineSegment( s1 ).p1;
+				pm = LineSegment( s1 ).p2;
+				//a1 = LineSegment( s1 ).angle;
+			} else if ( s1 is Bezier2 )
+			{
+				pl = Bezier2( s1 ).c;
+				pm = Bezier2( s1 ).p2;
+				//a1 = Bezier2( s1 ).c.angleTo( Bezier2( s1 ).p2 );
+			} else if ( s1 is Bezier3 )
+			{
+				pl = Bezier3( s1 ).c2;
+				pm = Bezier3( s1 ).p2;
+				//a1 = Bezier3( s1 ).c2.angleTo( Bezier3( s1 ).p2 );
+			}
+			
+			if ( s2 is LineSegment )
+			{
+				pr = LineSegment( s2 ).p2;
+				//a2 = LineSegment( s2 ).angle;
+			} else if ( s2 is Bezier2 )
+			{
+				pr = Bezier2( s2 ).c;
+				//a2 = Bezier2( s2 ).p1.angleTo( Bezier2( s2 ).c );
+			} else if ( s2 is Bezier3 )
+			{
+				pr = Bezier3( s2 ).c1;
+				//a2 = Bezier3( s2 ).p1.angleTo( Bezier3( s2 ).c1 );
+			}
+			return pm.cornerAngle(pr,pl);
+			//return a1 - a2;
+		}
+		
+		public function get cornerCount():int
+		{
+			if ( dirty ) 
+				if ( !updateSegments() ) return 0;
+			return segments.length + ( _closed ? 0 : 1 );
+		}
+		
+		public function getCorner( index:int ):Vector2
+		{
+			if ( dirty ) 
+				if ( !updateSegments() ) return null;
+			
+			var segment:GeometricShape;
+			
+			if ( closed ) index = (( index % cornerCount ) + cornerCount ) % cornerCount;
+			else if ( index < 0 ) index = 0;
+			else if ( index >= cornerCount )
+			{
+				segment = segments[segments.length-1]
+				if ( segment is LineSegment ) return LineSegment( segment ).p2;
+				if ( segment is Bezier2 ) return Bezier2( segment ).p2;
+				if ( segment is Bezier3 ) return Bezier3( segment ).p2;
+			}
+			
+			segment = segments[index];
+			if ( segment is LineSegment ) return LineSegment( segment ).p1;
+			if ( segment is Bezier2 ) return Bezier2( segment ).p1;
+			if ( segment is Bezier3 ) return Bezier3( segment ).p1;
+			
+			return null;
+		}
+		
+		
+		
 		public function get segmentCount():int
 		{
-			if ( dirty ) updateSegments();
+			if ( dirty ) 
+				if ( !updateSegments() ) return 0;
+				
 			return segments.length;
 		}
 		
@@ -547,7 +642,7 @@ package com.quasimondo.geom
 				}
 			}
 			*/
-			if ( loop )
+			if ( _closed )
 			{
 				lp.addPoint( segments[0].getPoint( 0 ) );
 			}
@@ -654,6 +749,17 @@ package com.quasimondo.geom
 			return this;
 		}
 		
+		override public function scale( factorX:Number, factorY:Number, center:Vector2 = null ):GeometricShape
+		{
+			if ( center == null ) center = centroid;
+			for each ( var p:Vector2 in points )
+			{
+				p.minus( center ).multiplyXY( factorX, factorY ).plus( center );
+			}
+			dirty = true;
+			return this;
+		}
+		
 		override public function getNormalAtPoint(p:Vector2):Vector2
 		{
 			var path:LinearPath = toLinearPath( 1 ) ;
@@ -695,7 +801,7 @@ package com.quasimondo.geom
 		{
 			var path:MixedPath = new MixedPath();
 			var p:Array = s.split(";");
-			path.setLoop( p[0] == "closed" );
+			path.setClosed( p[0] == "closed" );
 			p = p[1].split(",");
 			var pt:Array 
 			var v:Vector2;
@@ -715,6 +821,216 @@ package com.quasimondo.geom
 			return path;
 		}
 		
+		override public function clone( deepClone:Boolean = true ):GeometricShape
+		{
+			var path:MixedPath = new MixedPath();
+			for ( var i:int = 0; i<points.length; i++)
+			{
+				if ( deepClone )
+					path.points.push( new MixedPathPoint( new Vector2(points[i].x,points[i].y), points[i].ID, points[i].isControlPoint ) );
+				else
+					path.points.push(points[i]);
+			}
+			path._closed = _closed;
+			path.updateSegments();
+			return path;
+		}
+		
+		public function shiftStartCorner( delta:int ):void
+		{
+			if ( !_closed ) return;
+			
+			if (isValid)
+			{
+				var p:MixedPathPoint;
+				if ( delta > 0 )
+				{
+					while ( delta > 0 )
+					{
+						p = points.shift();
+						points.push ( p );
+						if ( !p.isControlPoint ) delta--;
+					}
+				} else {
+					while ( delta < 0 )
+					{
+						p = points.pop();
+						points.unshift( p );
+						if ( !p.isControlPoint ) delta++;
+					}
+				}
+				updateSegments();
+			}
+		}
+		
+		public function getSplitAtT( t:Number, clonePoints:Boolean = true ):Vector.<MixedPath>
+		{
+			var result:Vector.<MixedPath> = new Vector.<MixedPath>();
+			if ( t<=0 || t>=1) return result;
+			
+			if ( dirty ) updateSegments();
+			if (!isValid) return result;
+			
+			var leftPath:MixedPath = new MixedPath();
+			var rightPath:MixedPath = new MixedPath();
+			var last_t:Number = 0;
+			var t_sub:Number;
+			for (var i:int=0;i<segments.length;i++)
+			{
+				if (t <= t_toSegments[i] )
+				{
+					if (t_toSegments[i] - last_t != 0)
+						t_sub = ( t - last_t ) / (t_toSegments[i] - last_t);
+					else 
+						t_sub = 0;
+					
+					if ( t_sub == 0 )
+					{
+						if ( segments[i] is LineSegment )
+						{
+							leftPath.addPoint( clonePoints ? LineSegment( segments[i] ).p1.getClone() : LineSegment( segments[i] ).p1 );
+							
+							rightPath.addPoint( clonePoints ? LineSegment( segments[i] ).p1.getClone() : LineSegment( segments[i] ).p1 );
+							rightPath.addPoint( clonePoints ? LineSegment( segments[i] ).p2.getClone() : LineSegment( segments[i] ).p2 );
+						} else if ( segments[i] is Bezier2 )
+						{
+							leftPath.addPoint( clonePoints ? Bezier2( segments[i] ).p1.getClone() :  Bezier2( segments[i] ).p1 );
+							
+							rightPath.addPoint( clonePoints ? Bezier2( segments[i] ).p1.getClone() :  Bezier2( segments[i] ).p1 );
+							rightPath.addControlPoint( clonePoints ? Bezier2( segments[i] ).c.getClone() :  Bezier2( segments[i] ).c );
+							rightPath.addPoint( clonePoints ? Bezier2( segments[i] ).p2.getClone() :  Bezier2( segments[i] ).p2 );
+						} else if ( segments[i] is Bezier3 )
+						{
+							leftPath.addPoint( clonePoints ? Bezier3( segments[i] ).p1.getClone() :  Bezier3( segments[i] ).p1 );
+							
+							rightPath.addPoint( clonePoints ? Bezier3( segments[i] ).p1.getClone() :  Bezier3( segments[i] ).p1 );
+							rightPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c1.getClone() :  Bezier3( segments[i] ).c1 );
+							rightPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c2.getClone() :  Bezier3( segments[i] ).c2 );
+							rightPath.addPoint( clonePoints ? Bezier3( segments[i] ).p2.getClone() :  Bezier3( segments[i] ).p2 );
+						}
+					} else if ( t_sub == 1 )
+					{
+						if ( segments[i] is LineSegment )
+						{
+							leftPath.addPoint( clonePoints ? LineSegment( segments[i] ).p1.getClone() : LineSegment( segments[i] ).p1 );
+							leftPath.addPoint( clonePoints ? LineSegment( segments[i] ).p2.getClone() : LineSegment( segments[i] ).p2 );
+							
+							rightPath.addPoint( clonePoints ? LineSegment( segments[i] ).p2.getClone() : LineSegment( segments[i] ).p2 );
+						} else if ( segments[i] is Bezier2 )
+						{
+							leftPath.addPoint( clonePoints ? Bezier2( segments[i] ).p1.getClone() :  Bezier2( segments[i] ).p1 );
+							leftPath.addControlPoint( clonePoints ? Bezier2( segments[i] ).c.getClone() :  Bezier2( segments[i] ).c );
+							leftPath.addPoint( clonePoints ? Bezier2( segments[i] ).p2.getClone() :  Bezier2( segments[i] ).p2 );
+							
+							rightPath.addPoint( clonePoints ? Bezier2( segments[i] ).p2.getClone() :  Bezier2( segments[i] ).p2 );
+						} else if ( segments[i] is Bezier3 )
+						{
+							leftPath.addPoint( clonePoints ? Bezier3( segments[i] ).p1.getClone() :  Bezier3( segments[i] ).p1 );
+							leftPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c1.getClone() :  Bezier3( segments[i] ).c1 );
+							leftPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c2.getClone() :  Bezier3( segments[i] ).c2 );
+							leftPath.addPoint( clonePoints ? Bezier3( segments[i] ).p2.getClone() :  Bezier3( segments[i] ).p2 );
+							
+							rightPath.addPoint( clonePoints ? Bezier3( segments[i] ).p2.getClone() :  Bezier3( segments[i] ).p2 );
+						}
+					} else {
+						if ( segments[i] is LineSegment )
+						{
+							var lineParts:Vector.<LineSegment> = LineSegment( segments[i] ).getSplitAtT( t_sub, clonePoints );
+							leftPath.addPoint( lineParts[0].p1 );
+							leftPath.addPoint( lineParts[0].p2 );
+							
+							rightPath.addPoint( lineParts[1].p1 );
+							rightPath.addPoint( lineParts[1].p2 );
+						} else if ( segments[i] is Bezier2 )
+						{
+							var bez2Parts:Vector.<Bezier2> = Bezier2( segments[i] ).getSplitAtT( t_sub, clonePoints );
+							leftPath.addPoint( bez2Parts[0].p1 );
+							leftPath.addControlPoint( bez2Parts[0].c );
+							leftPath.addPoint( bez2Parts[0].p2 );
+							
+							rightPath.addPoint( bez2Parts[1].p1 );
+							rightPath.addControlPoint( bez2Parts[1].c );
+							rightPath.addPoint( bez2Parts[1].p2 );
+						} else if ( segments[i] is Bezier3 )
+						{
+							var bez3Parts:Vector.<Bezier3> = Bezier3( segments[i] ).getSplitAtT( t_sub, clonePoints );
+							leftPath.addPoint( bez3Parts[0].p1 );
+							leftPath.addControlPoint( bez3Parts[0].c1 );
+							leftPath.addControlPoint( bez3Parts[0].c2 );
+							leftPath.addPoint( bez3Parts[0].p2 );
+							
+							rightPath.addPoint( bez3Parts[1].p1 );
+							rightPath.addControlPoint( bez3Parts[1].c1 );
+							rightPath.addControlPoint( bez3Parts[1].c2 );
+							rightPath.addControlPoint( bez3Parts[1].p2 );
+						}
+					}
+						
+					while ( ++i < segments.length )
+					{
+						if ( segments[i] is LineSegment )
+						{
+							rightPath.addPoint( clonePoints ? LineSegment( segments[i] ).p2.getClone() : LineSegment( segments[i] ).p2 );
+						} else if ( segments[i] is Bezier2 )
+						{
+							rightPath.addControlPoint( clonePoints ? Bezier2( segments[i] ).c.getClone() :  Bezier2( segments[i] ).c );
+							rightPath.addPoint( clonePoints ? Bezier2( segments[i] ).p2.getClone() :  Bezier2( segments[i] ).p2 );
+						} else if ( segments[i] is Bezier3 )
+						{
+							rightPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c1.getClone() :  Bezier3( segments[i] ).c1 );
+							rightPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c2.getClone() :  Bezier3( segments[i] ).c2 );
+							rightPath.addPoint( clonePoints ? Bezier3( segments[i] ).p2.getClone() :  Bezier3( segments[i] ).p2 );
+						}
+					}
+					
+					leftPath.setClosed( false );
+					rightPath.setClosed( false );
+					result.push ( leftPath, rightPath );
+					return result;
+					
+				} else {
+					if ( segments[i] is LineSegment )
+					{
+						leftPath.addPoint( clonePoints ? LineSegment( segments[i] ).p1.getClone() : LineSegment( segments[i] ).p1 );
+					} else if ( segments[i] is Bezier2 )
+					{
+						leftPath.addPoint( clonePoints ? Bezier2( segments[i] ).p1.getClone() :  Bezier2( segments[i] ).p1 );
+						leftPath.addControlPoint( clonePoints ? Bezier2( segments[i] ).c.getClone() :  Bezier2( segments[i] ).c );
+					} else if ( segments[i] is Bezier3 )
+					{
+						leftPath.addPoint( clonePoints ? Bezier3( segments[i] ).p1.getClone() :  Bezier3( segments[i] ).p1 );
+						leftPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c1.getClone() :  Bezier3( segments[i] ).c1 );
+						leftPath.addControlPoint( clonePoints ? Bezier3( segments[i] ).c2.getClone() :  Bezier3( segments[i] ).c2 );
+					}
+				}
+				last_t = t_toSegments[i];
+			}
+			
+			
+			return result;
+		}
+		
+		public function getSplitsAtTs( t:Vector.<Number>, clonePoints:Boolean = true ):Vector.<MixedPath>
+		{
+			t.sort( function( a:Number, b:Number ):int{ return ( a < b ? -1 : ( a > b ? 1 : 0))});
+			
+			var current:MixedPath = this;
+			var last_t:Number = 0;
+			var result:Vector.<MixedPath> = new Vector.<MixedPath>();
+			for ( var i:int = 0; i < t.length; i++ )
+			{
+				var parts:Vector.<MixedPath> = current.getSplitAtT( (t[i] - last_t) / ( 1 - last_t ), clonePoints );
+				if ( parts.length > 0 )
+				{
+					result.push( parts[0] );
+					current = ( parts.length == 2 ? parts[1] : parts[0] );
+				}
+				last_t = t[i];
+			}
+			
+			if ( parts.length == 2 ) result.push( parts[1] );
+			return result;
+		}
 		
 		public function toString():String
 		{
@@ -723,7 +1039,7 @@ package com.quasimondo.geom
 			{
 				result[i] = MixedPathPoint(points[i]).toString();
 			}
-			return (loop ? "closed":"open") + ";" + result.join(",");
+			return (_closed ? "closed":"open") + ";" + result.join(",");
 		}
 	
 		override public function get type():String

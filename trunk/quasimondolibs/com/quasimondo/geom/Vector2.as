@@ -11,6 +11,7 @@ package com.quasimondo.geom
 	import flash.display.DisplayObject;
 	import flash.display.Graphics;
 	import flash.display.Sprite;
+	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.text.TextField;
 	import flash.text.TextFormat;
@@ -332,6 +333,11 @@ package com.quasimondo.geom
 			return this;
 		}
 		
+		public function getPlusXY( tx:Number, ty:Number ): Vector2
+		{
+			return new Vector2( x + tx, y + ty );
+		}
+		
 		public function minus( v:Vector2 ):Vector2
 		{
 			x -= v.x;
@@ -453,6 +459,13 @@ package com.quasimondo.geom
 			return this;
 		};
 		
+		public function minXY( px:Number, py:Number ):Vector2 
+		{
+			x = Math.min( x, px);
+			y = Math.min( y, py);
+			return this;
+		};
+		
 		public function getMin( v:Vector2 ):Vector2 
 		{
 			return new Vector2(Math.min( x, v.x), Math.min(y, v.y));
@@ -465,6 +478,12 @@ package com.quasimondo.geom
 			return this;
 		};
 		
+		public function maxXY( px:Number, py:Number ):Vector2 
+		{
+			x = Math.max( x, px);
+			y = Math.max( y, py);
+			return this;
+		};
 		
 		public function getMax( v:Vector2 ):Vector2
 		{
@@ -567,15 +586,28 @@ package com.quasimondo.geom
 		    return 0;			
 		}
 		
-		public function addLabel( label:String, canvas:Sprite ):void
+		public function applyTransformationMatrix( matrix:Matrix ):Vector2
+		{
+			var tx:Number = x * matrix.a + y * matrix.c + matrix.tx;
+			y = x * matrix.b + y * matrix.d + matrix.ty;
+			x = tx;
+			return this;
+		}
+		
+		public function getApplyTransformationMatrix( matrix:Matrix ):Vector2
+		{
+			return new Vector2( x * matrix.a + y * matrix.c + matrix.tx, x * matrix.b + y * matrix.d + matrix.ty );
+		}
+		
+		public function addLabel( label:String, canvas:Sprite, color:int = 0, backgroundColor:int = 0xffffff, lineColor:int = 0, backgroundAlpha:Number = 0.6 ):void
 		{
 			canvas.graphics.lineStyle()
-			canvas.graphics.beginFill(0xffffff);
+			canvas.graphics.beginFill(backgroundColor);
 			canvas.graphics.drawCircle( x,y,2);
 			canvas.graphics.endFill();
 			
 			var tf:TextField = new TextField();
-			tf.defaultTextFormat = new TextFormat("Arial",9,0x000000);
+			tf.defaultTextFormat = new TextFormat("Arial",9,color);
 			tf.autoSize = "left";
 			tf.text = label;
 			tf.x = x + 6;
@@ -583,11 +615,11 @@ package com.quasimondo.geom
 			canvas.addChild(tf);
 			
 			
-			canvas.graphics.beginFill(0xffffff,0.6);
+			canvas.graphics.beginFill(backgroundColor,backgroundAlpha);
 			canvas.graphics.drawRect( x+4,y-15, tf.width + 5, 12 );
 			canvas.graphics.endFill();
 			
-			canvas.graphics.lineStyle(0,0xffffff);
+			canvas.graphics.lineStyle(0,lineColor);
 			canvas.graphics.moveTo(x,y);
 			canvas.graphics.lineTo(x+4,y-4);
 			
