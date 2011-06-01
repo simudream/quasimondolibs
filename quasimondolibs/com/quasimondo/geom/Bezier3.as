@@ -532,14 +532,10 @@ package com.quasimondo.geom
 	
 	
 		/**
-	     * Return the nearest point (pn) on cubic bezier curve c nearest to point pa.
+	     * Return the nearest point  on cubic bezier curve nearest to point pa.
 	     *
-	     * @param c cubice curve
-	     * @param pa arbitrary point
-	     * @param pn nearest point found (return param)
-	     * @return distance squared between pa and nearest point (pn)
 	     */    
-	    public function nearestPoint ( pa:Vector2 ):Vector2 
+	    override public function getClosestPoint( pa:Vector2 ):Vector2 
 	    {
 	                                    
 	        var tCandidate:Vector.<Number> = new Vector.<Number>();     // Possible roots
@@ -582,6 +578,52 @@ package com.quasimondo.geom
 	
 			return bestP;
 	    }
+		
+		
+		/**
+		 * Return the nearest t on cubic bezier curve nearest to point pa.
+		 *
+		 */    
+		override public function getClosestT( pa:Vector2 ):Number 
+		{
+			
+			var tCandidate:Vector.<Number> = new Vector.<Number>();     // Possible roots
+			
+			// Convert problem to 5th-degree Bezier form
+			var w:Vector.<Vector2> = convertToBezierForm( pa );
+			
+			// Find all possible roots of 5th-degree equation
+			var nSolutions:int = findRoots( w, tCandidate, 0);
+			
+			// Compare distances of P5 to all candidates, and to t=0, and t=1
+			// Check distance to beginning of curve, where t = 0
+			var minDistance:Number = pa.squaredDistanceToVector( p1 );
+			var p:Vector2;
+			var bestT:Number = 0;
+			
+			// Find distances for candidate points
+			
+			var distance:Number;
+			for (var i:int = 0; i < nSolutions; i++) 
+			{
+				p = getPoint(tCandidate[i]);
+				distance = pa.squaredDistanceToVector( p );
+				if (distance < minDistance) 
+				{
+					minDistance = distance;
+					bestT = tCandidate[i];
+				}
+			}
+			
+			// Finally, look at distance to end point, where t = 1.0
+			distance =  pa.squaredDistanceToVector( p2 );
+			if (distance < minDistance) {
+				minDistance = distance;
+				bestT = 1;
+			}
+			
+			return bestT;
+		}
 		
 		
 		/**

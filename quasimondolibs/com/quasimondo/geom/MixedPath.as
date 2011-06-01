@@ -37,6 +37,62 @@ package com.quasimondo.geom
 			return mp;
 		}
 		
+		public static function getRoundedRect( center:Vector2, width:Number, height:Number, cornerRadius:Number ):MixedPath
+		{
+			cornerRadius = Math.min( cornerRadius, Math.min( width, height ) * 0.5 );
+			if ( cornerRadius < 0 ) cornerRadius = 0;
+			var mp:MixedPath = new MixedPath();
+			
+			var w2:Number = width * 0.5;
+			var h2:Number = height * 0.5;
+			var dx:Number = w2 - cornerRadius;
+			var dy:Number = h2 - cornerRadius;
+			
+			var drx:Number = Math.cos(-0.785398163) * cornerRadius;
+			var dry:Number = Math.sin(-0.785398163) * cornerRadius;
+			
+			var k:Number = 0.5522847498 * cornerRadius * 0.5;
+			var dcx:Number = Math.cos(-2.35619449) * k;
+			var dcy:Number = Math.sin(-2.35619449) * k;
+			
+			
+			
+			
+			mp.addPoint( new Vector2( center.x + dx, center.y - h2 ) );
+			mp.addControlPoint( new Vector2( center.x + dx + k, center.y - h2 ) );
+			mp.addControlPoint( new Vector2( center.x + dx + drx + dcx, center.y - dy + dry + dcy ) );
+			mp.addPoint( new Vector2( center.x + dx + drx, center.y - dy + dry ) );
+			mp.addControlPoint( new Vector2( center.x + dx + drx - dcx, center.y - dy + dry - dcy ) );
+			mp.addControlPoint( new Vector2( center.x + w2, center.y - dy - k ) );
+			mp.addPoint( new Vector2( center.x + w2, center.y - dy ) );
+			if ( cornerRadius < h2 ) mp.addPoint( new Vector2( center.x + w2, center.y + dy ) );
+			mp.addControlPoint( new Vector2( center.x + w2, center.y + dy + k ) );
+			mp.addControlPoint( new Vector2( center.x + dx + drx - dcx, center.y + dy - dry + dcy ) );
+			mp.addPoint( new Vector2( center.x + dx + drx, center.y + dy - dry ) );
+			mp.addControlPoint( new Vector2( center.x + dx + drx + dcx, center.y + dy - dry - dcy ) );
+			mp.addControlPoint( new Vector2( center.x + dx + k, center.y + h2 ) );
+			mp.addPoint( new Vector2( center.x + dx, center.y + h2 ) );
+			if ( cornerRadius < w2 ) mp.addPoint( new Vector2( center.x - dx, center.y + h2 ) );
+			mp.addControlPoint( new Vector2( center.x - dx - k, center.y + h2 ) );
+			mp.addControlPoint( new Vector2( center.x - dx - drx - dcx, center.y + dy - dry - dcy ) );
+			mp.addPoint( new Vector2( center.x - dx - drx, center.y + dy - dry ) );
+			mp.addControlPoint( new Vector2( center.x - dx - drx + dcx, center.y + dy - dry + dcy ) );
+			mp.addControlPoint( new Vector2( center.x - w2, center.y + dy + k ) );
+			mp.addPoint( new Vector2( center.x - w2, center.y + dy ) );
+			if ( cornerRadius < h2 ) mp.addPoint( new Vector2( center.x - w2, center.y - dy ) );
+			mp.addControlPoint( new Vector2( center.x - w2, center.y - dy - k ) );
+			mp.addControlPoint( new Vector2( center.x - dx - drx + dcx, center.y - dy + dry  - dcy ) );
+			mp.addPoint( new Vector2( center.x - dx - drx, center.y - dy + dry ) );
+			mp.addControlPoint( new Vector2( center.x - dx - drx - dcx, center.y - dy + dry  + dcy ) );
+			mp.addControlPoint( new Vector2( center.x - dx - k, center.y - h2 ) );
+			if ( cornerRadius < w2 ) mp.addPoint( new Vector2( center.x - dx, center.y - h2 ) );
+			
+			mp.setClosed(true);
+			return mp;
+			
+			
+		}
+		
 		public function MixedPath()
 		{
 			points = new Vector.<MixedPathPoint>();
@@ -244,7 +300,7 @@ package com.quasimondo.geom
 			return null;
 		}
 		
-		public function getPointAt_t( t:Number ):Vector2
+		override public function getPoint( t:Number ):Vector2
 		{
 			if ( dirty ) updateSegments();
 			
@@ -411,6 +467,32 @@ package com.quasimondo.geom
 				}
 			}
 			return closest;
+		}
+		
+		override public function getClosestT( p:Vector2 ):Number
+		{
+			if ( dirty ) updateSegments();
+			
+			var closest:Vector2 = segments[0].getClosestPoint( p );
+			var minDist:Number = closest.squaredDistanceToVector( p );
+			var closestSegmentIndex:int = 0;
+			var dist:Number;
+			var pt:Vector2;
+			for ( var i:int = 1; i < segments.length; i++ )
+			{
+				pt = segments[i].getClosestPoint( p );
+				dist = pt.squaredDistanceToVector( p );
+				if ( dist < minDist ) {
+					minDist = dist ;
+					closest = pt;
+					closestSegmentIndex = i;
+				}
+			}
+			
+			var ts:Number = segments[closestSegmentIndex].getClosestT( p );
+			var t0:Number = closestSegmentIndex > 0 ? t_toSegments[closestSegmentIndex - 1] : 0;
+			ts = t0 + ts * ( t_toSegments[closestSegmentIndex ] - t0 ); 
+			return ts;
 		}
 	
 		public function updateSegments():Boolean
@@ -612,17 +694,17 @@ package com.quasimondo.geom
 				
 			}
 			
-			if ( mode == LINEARIZE_CENTER && t_base != 0 ) lp.addPoint( getPointAt_t(0) );
+			if ( mode == LINEARIZE_CENTER && t_base != 0 ) lp.addPoint( getPoint(0) );
 			//if ( mode == LINEARIZE_CENTER ) 
 			for ( var i:int = 0; i <= totalSteps; i++ )
 			{
-				lp.addPoint( getPointAt_t( t_base + i * t_step ) );
+				lp.addPoint( getPoint( t_base + i * t_step ) );
 			}
 			if ( mode ==  LINEARIZE_OVERSHOOT ) {
 				var p1:Vector2 = lp.points[lp.points.length-1];
-				var p2:Vector2 = getPointAt_t( 1 );
+				var p2:Vector2 = getPoint( 1 );
 				lp.addPoint( p2.minus( p1 ).newLength( segmentLength ).plus(p1) );
-			} else if ( (mode == LINEARIZE_CENTER && t_base != 0) || ( mode == LINEARIZE_COMPLETE && (i-1) * t_step != 1) ) lp.addPoint( getPointAt_t(1) );
+			} else if ( (mode == LINEARIZE_CENTER && t_base != 0) || ( mode == LINEARIZE_COMPLETE && (i-1) * t_step != 1) ) lp.addPoint( getPoint(1) );
 			
 			/*
 			for ( var i:int = 0; i < segments.length; i++ )
@@ -1028,8 +1110,18 @@ package com.quasimondo.geom
 				last_t = t[i];
 			}
 			
-			if ( parts.length == 2 ) result.push( parts[1] );
+			if ( parts.length == 2  ) result.push( parts[1] );
+			if ( closed && result.length > 1 )
+			{
+				var p1:MixedPath = result.shift();
+				result[ result.length - 1 ].appendPath( p1 );
+			}
 			return result;
+		}
+		
+		public function getArea( precision:Number = 3 ):Number
+		{
+			return toPolygon(precision).area;
 		}
 		
 		public function toString():String
@@ -1041,6 +1133,8 @@ package com.quasimondo.geom
 			}
 			return (_closed ? "closed":"open") + ";" + result.join(",");
 		}
+		
+		
 	
 		override public function get type():String
 		{

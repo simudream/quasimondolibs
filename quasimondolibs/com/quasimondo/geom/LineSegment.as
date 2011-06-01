@@ -362,7 +362,7 @@ package com.quasimondo.geom
 			return p1.getLerp( p2, t / DdD );
 		};
 		
-		public function getClosestT( pt:Vector2 ):Number
+		override public function getClosestT( pt:Vector2 ):Number
 		{
 			var Dx:Number = p2.x - p1.x;
 			var Dy:Number = p2.y - p1.y;

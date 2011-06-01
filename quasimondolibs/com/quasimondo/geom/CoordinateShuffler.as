@@ -29,34 +29,36 @@
 
 package com.quasimondo.geom
 {
+	import __AS3__.vec.Vector;
+	
 	import flash.geom.Point;
-
+	
 	public class CoordinateShuffler
 	{
-		protected var __width:uint;
-		protected var __height:uint;
-		protected var __seed:uint;
+		protected var _width:uint;
+		protected var _height:uint;
+		protected var _seed:uint;
 		
-		protected var __hLookup:Vector.<uint>;
-		protected var __vLookup:Vector.<uint>;
+		protected var _hLookup:Vector.<int>;
+		protected var _vLookup:Vector.<int>;
 		
-		protected var __seed0:uint;
-		protected var __seed1:uint;
-		protected var __seed2:uint;
+		protected var _seed0:uint;
+		protected var _seed1:uint;
+		protected var _seed2:uint;
 		
-		protected var __shuffleDepth:uint;
-		protected var __lookupTableSize:uint;
-		protected var __maximumIndex:uint;
-		protected var __currentIndex:uint;
+		protected var _shuffleDepth:uint;
+		protected var _lookupTableSize:uint;
+		protected var _maximumIndex:uint;
+		protected var _currentIndex:uint;
 		
 		public function CoordinateShuffler( width:uint, height:uint, seed:uint = 0xBADA55, shuffleDepth:uint = 3, lookupTableSize:uint = 256 )
 		{
-			__width = width;
-			__height = height;
-			__maximumIndex = width * height;
-			__currentIndex = 0;
-			__shuffleDepth = shuffleDepth;
-			__lookupTableSize = lookupTableSize;
+			_width = width;
+			_height = height;
+			_maximumIndex = width * height;
+			_currentIndex = 0;
+			_shuffleDepth = shuffleDepth;
+			_lookupTableSize = lookupTableSize;
 			this.seed = seed;
 		}
 		
@@ -68,17 +70,18 @@ package com.quasimondo.geom
 		public function getCoordinate( index:uint ):Point
 		{
 			index %= maximumIndex;
-			var x:uint = index % __width;
-			var y:uint = index / __width;
+			var x:uint = index % _width;
+			var y:uint = index / _width;
 			var i:int;
-			for ( i = 0; i < __shuffleDepth; i++ )
+			for ( i = 0; i < _shuffleDepth; i++ )
 			{
-				y = ( y + __hLookup[ uint((i * __width  + x) % __lookupTableSize)] ) % __height;
-				x = ( x + __vLookup[ uint((i * __height + y) % __lookupTableSize)] ) % __width;
+				y = ( y + _hLookup[ uint((i * _width  + x) % _lookupTableSize)] ) % _height;
+				x = ( x + _vLookup[ uint((i * _height + y) % _lookupTableSize)] ) % _width;
 			}
-			__currentIndex = index+1;
+			_currentIndex = ++index;
 			return new Point( x,y );
 		}
+		
 		
 		/**
 		* Returns a unique coordinate within the given width and height
@@ -86,10 +89,9 @@ package com.quasimondo.geom
 		**/
 		public function getNextCoordinate( ):Point
 		{
-			__currentIndex %= maximumIndex;
-			return getCoordinate( __currentIndex++ );
+			_currentIndex %= maximumIndex;
+			return getCoordinate( _currentIndex++ );
 		}
-		
 		
 		/**
 		* Returns a list of unique coordinate within the given width and height
@@ -100,29 +102,29 @@ package com.quasimondo.geom
 			var list:Vector.<Point> = new Vector.<Point>();
 			var x:uint, y:uint, xx:uint, yy:uint, i:int;
 			
-			__currentIndex = index;
-			
+			_currentIndex = index;
+			var j:int = 0;
 			if ( count < 1 ) return list;
+			_currentIndex %= maximumIndex;
+			var ys:int = _currentIndex / _width;
+			var xs:int = _currentIndex % width;
 			
-			var minx:uint = index % __width;
-			var miny:uint = index / __width;
-			
-			for ( yy = miny; yy < __height; yy++ )
+			for ( yy = ys; yy < _height; yy++ )
 			{
-				for ( xx = ( yy == miny ? minx :0 ); xx < __width; xx++ )
+				for ( xx = xs; xx < _width; xx++ )
 				{
 					x = xx;
 					y = yy;
-					for ( i = 0; i < __shuffleDepth; i++ )
+					for ( i = 0; i < _shuffleDepth; i++ )
 					{
-						y = ( y + __hLookup[ uint((i * __width  + x) % __lookupTableSize)] ) % __height;
-						x = ( x + __vLookup[ uint((i * __height + y) % __lookupTableSize)] ) % __width;
+						y = ( y + _hLookup[ uint((i * _width  + x) % _lookupTableSize)] ) % _height;
+						x = ( x + _vLookup[ uint((i * _height + y) % _lookupTableSize)] ) % _width;
 					}
-					
-					list.push( new Point( x,y ) );
-					__currentIndex = ( __currentIndex + 1 ) % __maximumIndex;
+					list[j++] = new Point( x,y );
+					_currentIndex = ( _currentIndex + 1 ) % maximumIndex;
 					if ( count-- == 0 ) return list;
 				}
+				xs = 0;
 			}
 			return list;
 		}
@@ -134,13 +136,13 @@ package com.quasimondo.geom
 		**/
 		public function set shuffleDepth( value:uint ):void
 		{
-			__shuffleDepth = Math.max( 1, value );
-			seed = __seed;
+			_shuffleDepth = Math.max( 1, value );
+			seed = _seed;
 		}
 		
 		public function get shuffleDepth():uint
 		{
-			return __shuffleDepth;
+			return _shuffleDepth;
 		}
 		
 		
@@ -152,51 +154,43 @@ package com.quasimondo.geom
 		**/
 		public function set lookupTableSize ( value:uint ):void
 		{
-			__lookupTableSize = Math.max( 1, value );
-			seed = __seed;
+			_lookupTableSize = Math.max( 1, value );
+			seed = _seed;
 		}
 		
 		public function get lookupTableSize():uint
 		{
-			return __lookupTableSize;
+			return _lookupTableSize;
 		}
 		
 		public function get maximumIndex():uint
 		{
-			return __maximumIndex;
+			return _maximumIndex;
 		}	
 	
 		public function set width ( value:uint ):void
 		{
-			__width = width;
-			seed = __seed;
+			_width = width;
+			_maximumIndex = width * height;
+			seed = _seed;
 		}
 		
 		public function get width():uint
 		{
-			return __width;
+			return _width;
 		}
 		
 		public function set height( value:uint ):void
 		{
-			__height = height;
-			seed = __seed;
+			_height = height;
+			_maximumIndex = width * height;
+			seed = _seed;
 		}
 		
 		public function get height():uint
 		{
-			return __height;
+			return _height;
 		}
-		
-		/**
-		* Sets the next point index
-		* used in conjuntion with getNextCoordinate
-		**/
-		public function set index( value:uint ):void
-		{
-			__currentIndex = value % maximumIndex;
-		}
-		
 		
 		/**
 		* Sets the random seed 
@@ -204,47 +198,52 @@ package com.quasimondo.geom
 		**/
 		public function set seed( value:uint ):void
 		{
-			__seed = value;
+			_seed = value;
 			
-			__seed0 = (69069*__seed) & 0xffffffff;
-			if (__seed0 < 2) {
-	            __seed0 += 2;
+			_seed0 = (69069*_seed) & 0xffffffff;
+			if (_seed0 < 2) {
+	            _seed0 += 2;
 	        }
 	
-	        __seed1 = (69069* __seed0) & 0xffffffff;;
-	        if (__seed1 < 8) {
-	            __seed1 += 8;
+	        _seed1 = (69069* _seed0) & 0xffffffff;;
+	        if (_seed1 < 8) {
+	            _seed1 += 8;
 	        }
 	
-	        __seed2 = ( 69069 * __seed1) & 0xffffffff;;
-	        if (__seed2 < 16) {
-	            __seed2 += 16;
+	        _seed2 = ( 69069 * _seed1) & 0xffffffff;;
+	        if (_seed2 < 16) {
+	            _seed2 += 16;
 	        }
 	        
 	        update();
 		}
 		
+		public function resetIndex():void
+		{
+			_currentIndex = 0;
+		}
+		
 		private function update():void
 		{
 			var i:uint;
-			__hLookup = new Vector.<uint>(__lookupTableSize);
-			for ( i = __lookupTableSize; --i > -1; )
+			_hLookup = new Vector.<int>(_lookupTableSize,true);
+			for ( i = _lookupTableSize; --i > -1; )
 			{
-				__hLookup[i] = getNextInt() % __height;
+				_hLookup[i] = getNextInt() % _height;
 			}
-			__vLookup = new Vector.<uint>(__lookupTableSize);;
-			for ( i = __lookupTableSize; --i > -1; )
+			_vLookup = new Vector.<int>(_lookupTableSize,true);
+			for ( i = _lookupTableSize; --i > -1; )
 			{
-				__vLookup[i] = getNextInt() % __width;
+				_vLookup[i] = getNextInt() % _width;
 			}
 		}
 		
 		private function getNextInt(): uint
 		{
-			__seed0 = ((( __seed0 & 4294967294) << 12 )& 0xffffffff)^((((__seed0<<13)&0xffffffff)^__seed0) >>> 19 );
-       		__seed1 = ((( __seed1 & 4294967288) << 4) & 0xffffffff)^((((__seed1<<2)&0xffffffff)^__seed1)>>>25)
-        	__seed2 =  ((( __seed2 & 4294967280) << 17) & 0xffffffff)^((((__seed2<<3)&0xffffffff)^__seed2)>>>11)
-        	return __seed0 ^ __seed1 ^ __seed2;
+			_seed0 = ((( _seed0 & 4294967294) << 12 )& 0xffffffff)^((((_seed0<<13)&0xffffffff)^_seed0) >>> 19 );
+       		_seed1 = ((( _seed1 & 4294967288) << 4) & 0xffffffff)^((((_seed1<<2)&0xffffffff)^_seed1)>>>25)
+        	_seed2 =  ((( _seed2 & 4294967280) << 17) & 0xffffffff)^((((_seed2<<3)&0xffffffff)^_seed2)>>>11)
+        	return _seed0 ^ _seed1 ^ _seed2;
 		}
 
 	}

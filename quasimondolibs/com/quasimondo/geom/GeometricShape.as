@@ -106,6 +106,12 @@
 			return null;
 		}
 		
+		public function getClosestT( p:Vector2 ):Number
+		{
+			throw new Error("Must override getClosestT!");
+			return 0;
+		}
+		
 		public function translate( offset:Vector2 ):GeometricShape
 		{
 			throw new Error("Must override translate!");
