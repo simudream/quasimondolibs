@@ -1,42 +1,31 @@
-﻿/*
+﻿// ColorMatrix Class v2.6
+//
+// released under MIT License (X11)
+// http://www.opensource.org/licenses/mit-license.php
+//
+// Author: Mario Klingemann
+// http://www.quasimondo.com
 
-	ColorMatrix Class v2.41
+/*
+Copyright (c) 2006-2010 Mario Klingemann
 
-	released under MIT License (X11)
-	http://www.opensource.org/licenses/mit-license.php
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-	Author: Mario Klingemann
-	http://www.quasimondo.com
-	
-	
-	Big parts of this class are based on information found in
-	"Matrix Operations for Image Processing"
-	by Paul Haeberli
-	http://web.archive.org/web/20060110044204/http://www.sgi.com/misc/grafica/matrix/
-	
-	Matrix factors for the applyColorDeficiency() method
-	have been copied from http://www.nofunc.com/Color_Matrix_Library/ 
-			
-	
-	Copyright (c) 2006-2010 Mario Klingemann
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-
-	The above copyright notice and this permission notice shall be included in
-	all copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-	THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 */
 
 // Changes in v1.1:
@@ -96,8 +85,16 @@
 //changes in v2.4
 // Added autoDesaturate()
 
-//changes in v2.41
-// Added several default values to methods
+//changes in v2.5
+// Added extrapolate()
+
+//changes in v2.51
+// fixed a bug in setChannels
+// removed some redundand casts from as2
+
+//changes in v2.6
+// added tolerance factor to autoDesaturate()
+// slightly improved performance of autoDesaturate()
 
 package com.quasimondo.geom {
 	
@@ -120,7 +117,7 @@ package com.quasimondo.geom {
 															'Achromatopsia',
 															'Achromatomaly' ];
     	
-		// Estimated occurences of color deficiencies:
+    	// Estimatged occurences of color deficiencies:
     	// Protanopia: 1.32%
     	// Protanomaly: 1.32%
     	// Deuteranopia: 1.21%
@@ -256,7 +253,7 @@ package com.quasimondo.geom {
 				
 		*/
 		
-		public function adjustSaturation( s:Number = 1 ):void{
+		public function adjustSaturation( s:Number ):void{
             
             var sInv:Number;
             var irlum:Number;
@@ -297,7 +294,7 @@ package com.quasimondo.geom {
 				
 		*/
 		
-		public function adjustContrast( r:Number = 0, g:Number = NaN, b:Number = NaN ):void
+		public function adjustContrast( r:Number, g:Number = NaN, b:Number = NaN ):void
 		{
 			if (isNaN(g)) g = r;
 			if (isNaN(b)) b = r;
@@ -312,7 +309,7 @@ package com.quasimondo.geom {
 		}
 		  
 		
-		public function adjustBrightness(r:Number = 0, g:Number=NaN, b:Number=NaN):void
+		public function adjustBrightness(r:Number, g:Number=NaN, b:Number=NaN):void
  		{
             if (isNaN(g)) g = r;
             if (isNaN(b)) b = r;
@@ -322,7 +319,7 @@ package com.quasimondo.geom {
             		0, 0, 0, 1, 0]);
         }
         
-        public function toGreyscale( r:Number = LUMA_R, g:Number = LUMA_G, b:Number = LUMA_B ):void
+        public function toGreyscale(r:Number, g:Number, b:Number):void
  		{
             concat([r, g, b, 0, 0, 
             		r, g, b, 0, 0, 
@@ -331,7 +328,7 @@ package com.quasimondo.geom {
         }
         
         
-        public function adjustHue( degrees:Number = 0 ):void
+        public function adjustHue( degrees:Number ):void
         {
             degrees *= RAD;
             var cos:Number = Math.cos(degrees);
@@ -343,7 +340,7 @@ package com.quasimondo.geom {
         }
         
         
-		public function rotateHue( degrees:Number = 0 ):void
+       public function rotateHue( degrees:Number ):void
         {
 			initHue();
 			
@@ -353,6 +350,9 @@ package com.quasimondo.geom {
 		
 		}
 
+        
+      
+        
         public function luminance2Alpha():void
         {
             concat([0, 0, 0, 0, 255, 
@@ -361,7 +361,7 @@ package com.quasimondo.geom {
             		LUMA_R, LUMA_G, LUMA_B, 0, 0]);
         }
         
-        public function adjustAlphaContrast( amount:Number = 0 ):void
+        public function adjustAlphaContrast(amount:Number):void
         {
             amount += 1;
             concat([1, 0, 0, 0, 0, 
@@ -370,7 +370,7 @@ package com.quasimondo.geom {
             		0, 0, 0, amount, (128 * (1 - amount))]);
         }
         
-        public function colorize( rgb:int, amount:Number = 1 ):void
+        public function colorize(rgb:int, amount:Number=1):void
         {
             var r:Number;
             var g:Number;
@@ -389,21 +389,21 @@ package com.quasimondo.geom {
         }
         
         
-      	public function setChannels( r:int = 1, g:int = 2, b:int = 4, a:int = 8 ):void
+      	public function setChannels( r:int = 1, g:int = 2, b:int = 4, a:int = 8):void
         {
-           var rf:Number = ((((((r & 1) == 1)) ? 1 : 0 + (((r & 2) == 2)) ? 1 : 0) + (((r & 4) == 4)) ? 1 : 0) + (((r & 8) == 8)) ? 1 : 0);
+           var rf:Number = (((r & 1) == 1) ? 1 : 0 ) + (((r & 2) == 2) ? 1 : 0) + (((r & 4) == 4) ? 1 : 0) + (((r & 8) == 8) ? 1 : 0);
             if (rf > 0){
                 rf = (1 / rf);
             };
-            var gf:Number = ((((((g & 1) == 1)) ? 1 : 0 + (((g & 2) == 2)) ? 1 : 0) + (((g & 4) == 4)) ? 1 : 0) + (((g & 8) == 8)) ? 1 : 0);
+            var gf:Number = (((g & 1) == 1) ? 1 : 0 ) + (((g & 2) == 2) ? 1 : 0) + (((g & 4) == 4) ? 1 : 0) + (((g & 8) == 8) ? 1 : 0);
             if (gf > 0){
                 gf = (1 / gf);
             };
-            var bf:Number = ((((((b & 1) == 1)) ? 1 : 0 + (((b & 2) == 2)) ? 1 : 0) + (((b & 4) == 4)) ? 1 : 0) + (((b & 8) == 8)) ? 1 : 0);
+            var bf:Number = (((b & 1) == 1) ? 1 : 0 ) + (((b & 2) == 2) ? 1 : 0) + (((b & 4) == 4) ? 1 : 0) + (((b & 8) == 8) ? 1 : 0);
             if (bf > 0){
                 bf = (1 / bf);
             };
-            var af:Number = ((((((a & 1) == 1)) ? 1 : 0 + (((a & 2) == 2)) ? 1 : 0) + (((a & 4) == 4)) ? 1 : 0) + (((a & 8) == 8)) ? 1 : 0);
+            var af:Number = (((a & 1) == 1) ? 1 : 0 ) + (((a & 2) == 2) ? 1 : 0) + (((a & 4) == 4) ? 1 : 0) + (((a & 8) == 8) ? 1 : 0);
             if (af > 0){
                 af = (1 / af);
             };
@@ -411,18 +411,28 @@ package com.quasimondo.geom {
         }
         
         
-        public function blend( mat:ColorMatrix, amount:Number ):void
+        public function blend(mat:ColorMatrix, amount:Number):void
         {
             var inv_amount:Number = (1 - amount);
             var i:int = 0;
             while (i < 20) 
             {
-                matrix[i] = ((inv_amount * Number(matrix[i])) + (amount * Number(mat.matrix[i])));
+                matrix[i] = ((inv_amount * matrix[i]) + (amount * mat.matrix[i]));
                 i++;
             };
         }
+
+		public function extrapolate(mat:ColorMatrix, factor:Number ):void
+		{
+			var i:int = 0;
+			while (i < 20) 
+			{
+				matrix[i] += ( mat.matrix[i] - matrix[i]) * factor;
+				i++;
+			};
+		}
         
-        public function average( r:Number = ONETHIRD, g:Number = ONETHIRD, b:Number = ONETHIRD ):void
+        public function average( r:Number=ONETHIRD, g:Number=ONETHIRD, b:Number=ONETHIRD):void
         {
             concat([r, g, b, 0, 0, 
             		r, g, b, 0, 0, 
@@ -448,13 +458,14 @@ package com.quasimondo.geom {
         
         public function desaturate():void
         {
-			concat([LUMA_R, LUMA_G, LUMA_B, 0, 0, 
+            concat([LUMA_R, LUMA_G, LUMA_B, 0, 0, 
             		LUMA_R, LUMA_G, LUMA_B, 0, 0, 
             		LUMA_R, LUMA_G, LUMA_B, 0, 0, 
             		0, 0, 0, 1, 0]);
         }
         
-		public function randomize( amount:Number = 1, normalize:Boolean = false ):void
+        
+		public function randomize(amount:Number=1):void
         {
             var inv_amount:Number = (1 - amount);
             var r1:Number = (inv_amount + (amount * (Math.random() - Math.random())));
@@ -474,10 +485,11 @@ package com.quasimondo.geom {
             		r2, g2, b2, 0, o2, 
             		r3, g3, b3, 0, o3, 
             		0, 0, 0, 1, 0]);
-					
-			if ( normalize ) normalize();
         }
 		
+          
+        
+        
         public function setMultiplicators( red:Number = 1, green:Number = 1, blue:Number = 1, alpha:Number = 1 ):void
 		{
 			var mat:Array =  new Array ( red, 0, 0, 0, 0,
@@ -508,7 +520,7 @@ package com.quasimondo.geom {
 			}
 		}
         
-        public function thresholdAlpha( threshold:Number = 0.5, factor:Number = 256):void
+        public function thresholdAlpha( threshold:Number, factor:Number = 256):void
         {
             concat([1, 0, 0, 0, 0, 
             		0, 1, 0, 0, 0, 
@@ -532,7 +544,7 @@ package com.quasimondo.geom {
             		0, 0, 0, -1, 255]);
         }
         
-        public function rgb2Alpha( r:Number = ONETHIRD, g:Number = ONETHIRD, b:Number = ONETHIRD ):void
+        public function rgb2Alpha( r:Number, g:Number, b:Number ):void
         {
             concat([0, 0, 0, 0, 255, 
             		0, 0, 0, 0, 255, 
@@ -540,7 +552,7 @@ package com.quasimondo.geom {
             		r, g, b, 0, 0]);
         }
         
-        public function setAlpha( alpha:Number = 1 ):void
+        public function setAlpha(alpha:Number):void
         {
             concat([1, 0, 0, 0, 0, 
             		0, 1, 0, 0, 0, 
@@ -558,8 +570,10 @@ package com.quasimondo.geom {
         	bitmapData.applyFilter( bitmapData, bitmapData.rect, new Point(), filter );
 		}
         
-        public function concat( mat:Array ):void
+        
+      	public function concat( mat:Array ):void
 		{
+			
 			var temp:Array = [];
 			var i:int = 0;
 			var x:int, y:int;
@@ -568,11 +582,11 @@ package com.quasimondo.geom {
 				
 				for (x = 0; x < 5; x++ )
 				{
-					temp[ int( i + x) ] =  Number(mat[i  ])      * Number(matrix[x]) + 
-								   		   Number(mat[int(i+1)]) * Number(matrix[int(x +  5)]) + 
-								   		   Number(mat[int(i+2)]) * Number(matrix[int(x + 10)]) + 
-								   		   Number(mat[int(i+3)]) * Number(matrix[int(x + 15)]) +
-								   		   (x == 4 ? Number(mat[int(i+4)]) : 0);
+					temp[ int( i + x) ] =  mat[i  ]      * matrix[x] + 
+								   		   mat[int(i+1)] * matrix[int(x +  5)] + 
+								   		   mat[int(i+2)] * matrix[int(x + 10)] + 
+								   		   mat[int(i+3)] * matrix[int(x + 15)] +
+								   		   (x == 4 ? mat[int(i+4)] : 0);
 				}
 				i+=5;
 			}
@@ -581,17 +595,17 @@ package com.quasimondo.geom {
 			
 		}
 		
-		public function rotateRed( degrees:Number = 0 ):void
+		public function rotateRed( degrees:Number ):void
         {
           	rotateColor( degrees, 2, 1 ); 
         }
         
-        public function rotateGreen( degrees:Number = 0 ):void
+        public function rotateGreen( degrees:Number ):void
         {
             rotateColor( degrees, 0, 2 ); 
         }
         
-        public function rotateBlue( degrees:Number = 0 ):void
+        public function rotateBlue( degrees:Number ):void
         {
            rotateColor( degrees, 1, 0 ); 
         }
@@ -620,6 +634,7 @@ package com.quasimondo.geom {
         
         public function fitRange():void
         {
+        	
         	for ( var i:int = 0; i < 4; i++ )
         	{
         		var minFactor:Number = 0;
@@ -627,8 +642,8 @@ package com.quasimondo.geom {
         		
         		for ( var j:int = 0; j < 4; j++ )
         		{
-        			if ( matrix[int(i*5+j)] < 0 ) minFactor += matrix[int(i*5+j)]; 
-        			else maxFactor += matrix[int(i*5+j)];
+        			if ( matrix[i*5+j] < 0 ) minFactor += matrix[i*5+j]; 
+        			else maxFactor += matrix[i*5+j];
         		}
         		
         		var range:Number =  maxFactor * 255 - minFactor * 255;
@@ -638,7 +653,7 @@ package com.quasimondo.geom {
         		{
         			for ( j = 0; j < 4; j++ )
         			{
-        				matrix[int(i*5+j)] *= rangeCorrection;
+        				matrix[i*5+j] *= rangeCorrection;
         			}
         		}
         		
@@ -647,15 +662,25 @@ package com.quasimondo.geom {
         		
         		for ( j = 0; j < 4; j++ )
         		{
-        			if ( matrix[int(i*5+j)] < 0 ) minFactor += matrix[int(i*5+j)]; 
-        			else maxFactor += matrix[int(i*5+j)];
+        			if ( matrix[i*5+j] < 0 ) minFactor += matrix[i*5+j]; 
+        			else maxFactor += matrix[i*5+j];
         		}
         		
         		var worstMin:Number = minFactor * 255;
         		var worstMax:Number = maxFactor * 255;
         		
-        		matrix[int(i*5+4)] = - ( worstMin + ( worstMax - worstMin ) * 0.5 - 127.5 );
+        		matrix[i*5+4] = - ( worstMin + ( worstMax - worstMin ) * 0.5 - 127.5 );
         	}
+        }
+        
+        private function rotateColor( degrees:Number, x:int, y:int ):void
+        {
+        	  degrees *= RAD;
+	          var mat:Array = IDENTITY.concat();
+			  mat[ x + x * 5 ] = mat[ y + y * 5 ] = Math.cos( degrees );
+			  mat[ y + x * 5 ] = Math.sin( degrees );
+			  mat[ x + y * 5 ] = -Math.sin( degrees );
+			  concat( mat );
         }
         
         public function shearRed( green:Number, blue:Number ):void
@@ -673,8 +698,18 @@ package com.quasimondo.geom {
         	shearColor( 2, 0, red, 1, green );
         }
         
+        private function shearColor( x:int, y1:int, d1:Number, y2:int, d2:Number ):void
+		{
+			var mat:Array = IDENTITY.concat();
+			mat[ y1 + x * 5 ] = d1;
+			mat[ y2 + x * 5 ] = d2;
+		 	concat( mat );
+		}
+		
 		public function applyColorDeficiency( type:String ):void
 		{
+			// the values of this method are copied from http://www.nofunc.com/Color_Matrix_Library/ 
+			
 			switch ( type )
 			{
        			case 'Protanopia':
@@ -731,8 +766,7 @@ package com.quasimondo.geom {
 					 0.595716, -0.274453, -0.321263, 0, 128,
 					 0.211456, -0.522591, -0.311135, 0, 128,
 					 0       , 0        ,  0       , 1, 0  ]);
-		}	
-		
+		}			 
 		/*
 		public function YIQ2RGB():void
 		{
@@ -742,9 +776,9 @@ package com.quasimondo.geom {
 					 0                 ,  0                      , 0                     , 1,    0  ]);
 					 
 		}
-		*/		
+*/		
 		
-		public function autoDesaturate( bitmapData:BitmapData, stretchLevels:Boolean = false, outputToBlueOnly:Boolean = false ):void
+		public function autoDesaturate( bitmapData:BitmapData, stretchLevels:Boolean = false, outputToBlueOnly:Boolean = false, tolerance:Number = 0.01 ):void
 		{
 			var histogram:Vector.<Vector.<Number>> = bitmapData.histogram(bitmapData.rect );
 			
@@ -754,23 +788,16 @@ package com.quasimondo.geom {
 			var min:Number;
 			var max:Number;
 			var minFound:Boolean = false;
+				 
+			var histR:Vector.<Number> = histogram[0];
+			var histG:Vector.<Number> = histogram[1];
+			var histB:Vector.<Number> = histogram[2];
+			
 			for ( var i:int = 0; i < 256; i++ )
 			{
-				sum_r += histogram[0][i] * i;
-				sum_g += histogram[1][i] * i;
-				sum_b += histogram[2][i] * i;
-				if ( stretchLevels )
-				{
-					if ( histogram[0][i] != 0 || histogram[1][i] != 0 || histogram[2][i] != 0 )
-					{
-						max = i
-						if ( !minFound )
-						{
-							min = i;
-							minFound = true;
-						}
-					}
-				}
+				sum_r += histR[i] * i;
+				sum_g += histG[i] * i;
+				sum_b += histB[i] * i;
 			}
 			
 			var total:Number = sum_r + sum_g + sum_b;
@@ -785,14 +812,49 @@ package com.quasimondo.geom {
 			sum_b /= total;
 			
 			var offset:Number = 0;
-			if ( stretchLevels && max - min < 255) 
+			
+			if ( stretchLevels )
 			{
-				var f:Number = 256 / ((max - min) + 1);
-				sum_r *= f;
-				sum_g *= f;
-				sum_b *= f;
-				offset = -min;
+				var minPixels:Number = bitmapData.rect.width * bitmapData.rect.height * tolerance;
+				var sr:Number = 0;
+				var sg:Number = 0;
+				var sb:Number = 0;
+				for ( i = 0; i < 256; i++ )
+				{
+					sr += histR[i];
+					sg += histG[i];
+					sb += histB[i];
+					if ( sr > minPixels || sg > minPixels || sb > minPixels )
+					{
+						min = i;
+						break;
+					}
+				}
+				sr = 0;
+				sg = 0;
+				sb = 0;
+				for ( i = 256; --i > -1; )
+				{
+					sr += histR[i];
+					sg += histG[i];
+					sb += histB[i];
+					if ( sr > minPixels || sg > minPixels || sb > minPixels )
+					{
+						max = i;
+						break;
+					}
+				}
+				
+				if ( max - min < 255) 
+				{
+					var f:Number = 256 / ((max - min) + 1);
+					sum_r *= f;
+					sum_g *= f;
+					sum_b *= f;
+					offset = -min;
+				}
 			}
+			
 			
 			f = 1 / Math.sqrt(sum_r * sum_r + sum_g * sum_g + sum_b * sum_b);
 			sum_r *= f;
@@ -926,24 +988,6 @@ package com.quasimondo.geom {
 			}
 			
   		}
-		
-		private function rotateColor( degrees:Number, x:int, y:int ):void
-        {
-        	  degrees *= RAD;
-	          var mat:Array = IDENTITY.concat();
-			  mat[ x + x * 5 ] = mat[ y + y * 5 ] = Math.cos( degrees );
-			  mat[ y + x * 5 ] = Math.sin( degrees );
-			  mat[ x + y * 5 ] = -Math.sin( degrees );
-			  concat( mat );
-        }
-		
-		private function shearColor( x:int, y1:int, d1:Number, y2:int, d2:Number ):void
-		{
-			var mat:Array = IDENTITY.concat();
-			mat[ y1 + x * 5 ] = d1;
-			mat[ y2 + x * 5 ] = d2;
-		 	concat( mat );
-		}
 	
   	
   		public function toString():String
