@@ -259,7 +259,7 @@ package com.quasimondo.geom
 			var normal:Vector2;
 			for (var t:Number = 0;t<=1;t+=stepSize)
 			{
-				p = path.getPointAt_t( t );
+				p = path.getPoint( t );
 				u = ( p.x - bounds.x ) / bounds.width;
 				v = 1 - (( p.y - bounds.y ) / bounds.height);
 				

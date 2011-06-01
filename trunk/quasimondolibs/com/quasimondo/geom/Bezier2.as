@@ -160,6 +160,34 @@ package com.quasimondo.geom
 			return getPoint(bestT);
 		}
 		
+		override public function getClosestT( p:Vector2 ):Number
+		{
+			// a very bad hack. Only temporary
+			var bestD:Number = getPoint(0).squaredDistanceToVector(p);
+			var bestT:Number = 0;
+			for ( var t:Number = 0.05 ; t <= 1; t+= 0.05 )
+			{
+				var d:Number = getPoint(t).squaredDistanceToVector(p);
+				if ( d < bestD )
+				{
+					bestD = d;
+					bestT = t;
+				} 
+			}
+			var midT:Number = bestT;
+			for ( t = Math.max(0,midT - 0.05) ; t <= Math.min(1,midT + 0.05); t+= 0.005 )
+			{
+				d = getPoint(t).squaredDistanceToVector(p);
+				if ( d < bestD )
+				{
+					bestD = d;
+					bestT = t;
+				} 
+			}
+			
+			return bestT;
+		}
+		
 		override public function get length():Number
 		{
 			if ( !dirty ) return __length;

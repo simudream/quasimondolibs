@@ -18,32 +18,26 @@
 		static private const EPSILON:Number = 1e-4;
 		static private const PI2:Number = 2*Math.PI;
 		
-		private var drawingSegments:int;
-		private var startAngle:Number;
-		private var endAngle:Number;
+		private var drawingSegments:int = 6;
+		private var startAngle:Number = 0;
+		private var endAngle:Number = 0;
 		
-		public function Ellipse() {
-			if (arguments.length>0) {
-				switch (arguments.length) {
-				case 1 :
-					if (arguments[0] is Rectangle) {
-						c = arguments[0].p1.lerp(arguments[0].p2, 0.5);
-					}
-					rx = arguments[0].getWidth()/2;
-					ry = arguments[0].getHeight()/2;
-					break;
-				case 3 :
-					if (arguments[0] is Vector2) {
-						c = arguments[0];
-					} else {
-						c = new Vector2(arguments[0]);
-					}
-					rx = arguments[1];
-					ry = arguments[2];
-					break;
-				}
-				
+		public function Ellipse( value1:* = null, value2:* = null, value3:* = null ) 
+		{
+			
+			if (value1 is Rectangle) {
+				var r:Rectangle = Rectangle( value1 );
+				rx = r.width * 0.5;
+				ry =  r.height * 0.5;
+				c = new Vector2( r.x + rx, r.y + ry);
 				update();
+			} else if (value1 is Vector2 && value2 is Number && value3 is Number ) {
+				c = value1;
+				rx = value2;
+				ry = value3;
+				update();
+			} else {
+				throw( new Error("Ellipse: Wrong arguments"))
 			}
 		}
 		
@@ -56,28 +50,6 @@
 		{
 			rx2 = rx*rx;
 			ry2 = ry*ry;
-		};
-		
-		public function setCenter():void
-		{
-			switch (arguments.length) {
-			case 1 :
-				if (arguments[0] is Vector2) {
-					c = arguments[0];
-				} else {
-					c = new Vector2(arguments[0]);
-				}
-				break;
-			case 2 :
-				c = new Vector2(arguments[0], arguments[1]);
-				break;
-			}
-		};
-		
-		//
-		public function getCenter():Vector2
-		{
-			return c;
 		};
 		
 		
