@@ -117,22 +117,18 @@ package com.quasimondo.geom
 		
 		override public function isInside( p:Vector2, includeVertices:Boolean = true ):Boolean
 		{
-			var inside:Boolean = false;
 			for each ( var shape:GeometricShape in shapes )
 			{
-				inside = ( inside != shape.isInside( p, includeVertices ));
+				if( shape.isInside( p, true ) && !shape.isInside( p, false )) return includeVertices;
 			}
-			/*
-			// this is yet a dirty hack
-			var hack:Shape = new Shape();
-			hack.graphics.beginFill(0);
-			draw( hack.graphics );
-			hack.graphics.endFill();
-			stageHack.addChild(hack);
-			var result:Boolean = hack.hitTestPoint( p.x, p.y, true );
-			stageHack.removeChild(hack);
-			*/
-			return inside;
+			
+			var inside:int = 0;
+			for each ( shape in shapes )
+			{
+				if (shape.isInside( p, false )) inside++;
+			}
+			
+			return (inside % 2 == 1);
 		}
 
 		public function addPointAtClosestSide( p:Vector2 ):void

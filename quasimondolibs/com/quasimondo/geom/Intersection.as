@@ -120,6 +120,15 @@
 					case "TriangleCompoundShape":
 						return new Intersection().compoundShape_triangle(CompoundShape(shape2), Triangle(shape1)  );
 						break;
+					case "CompoundShapePolygon":
+						return new Intersection().compoundShape_polygon( CompoundShape(shape1), Polygon(shape2) );
+						break;
+					case "PolygonCompoundShape":
+						return new Intersection().compoundShape_polygon( CompoundShape(shape2), Polygon(shape1)  );
+						break;
+					case "CompoundShapeCompoundShape":
+						return new Intersection().compoundShape_compoundShape( CompoundShape(shape1), CompoundShape(shape2) );
+						break;
 					case "PolygonTriangle":
 						return new Intersection().polygon_triangle(Polygon(shape1), Triangle(shape2)  );
 						break;
@@ -221,6 +230,7 @@
 						}
 					}
 				}
+	import com.quasimondo.geom.GeometricShape;
 	
 				if ( points.length > 0 ) {
 					status = Intersection.INTERSECTION;
@@ -1027,6 +1037,55 @@
 				for ( var j:int = 0; j < 3; j++ )
 				{
 					intersection = t.getSide(j).intersect( c.getShapeAt( i ));
+					if ( intersection.status == Intersection.INTERSECTION )
+					{
+						result.status = Intersection.INTERSECTION;
+						for ( var k:int = 0; k < intersection.points.length; k++ )
+							result.appendPoint( intersection.points[k]);
+					} else if ( result.status != Intersection.INTERSECTION )
+					{
+						result.status = intersection.status;
+					}
+				}
+			}
+			return result;
+		}
+		
+		public function compoundShape_polygon( c:CompoundShape, p:Polygon ):Intersection
+		{
+			var result:Intersection = new Intersection();
+			var intersection:Intersection;
+			
+			for ( var i:int = 0; i < c.shapeCount; i++ )
+			{
+				for ( var j:int = p.pointCount; --j >-1; )
+				{
+					intersection = p.getSide(j).intersect( c.getShapeAt( i ));
+					if ( intersection.status == Intersection.INTERSECTION )
+					{
+						result.status = Intersection.INTERSECTION;
+						for ( var k:int = 0; k < intersection.points.length; k++ )
+							result.appendPoint( intersection.points[k]);
+					} else if ( result.status != Intersection.INTERSECTION )
+					{
+						result.status = intersection.status;
+					}
+				}
+			}
+			return result;
+		}
+		
+		public function compoundShape_compoundShape( c1:CompoundShape, c2:CompoundShape ):Intersection
+		{
+			var result:Intersection = new Intersection();
+			var intersection:Intersection;
+			
+			for ( var i:int = 0; i < c1.shapeCount; i++ )
+			{
+				var shape:GeometricShape = c1.getShapeAt( i );
+				for ( var j:int = 0; j < c2.shapeCount; j++ )
+				{
+					intersection = shape.intersect( c2.getShapeAt( j ));
 					if ( intersection.status == Intersection.INTERSECTION )
 					{
 						result.status = Intersection.INTERSECTION;
