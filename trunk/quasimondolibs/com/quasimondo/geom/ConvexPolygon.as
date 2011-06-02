@@ -300,8 +300,11 @@ package com.quasimondo.geom
 				y = p.y - v1.y;
 		
 			//	Dot with edge normal to find side.
-				if ( includeVertices ? (( x * nx ) + ( y * ny ) > 0) : (( x * nx ) + ( y * ny ) >= 0) )
-					return false;
+				var t:Number = ( x * nx ) + ( y * ny );
+				if (t == 0) return includeVertices;
+				else if ( t > 0 ) return false
+				//if ( includeVertices ? (( x * nx ) + ( y * ny ) > 0) : (( x * nx ) + ( y * ny ) >= 0) )
+				//	return false;
 			}
 		
 			return true;

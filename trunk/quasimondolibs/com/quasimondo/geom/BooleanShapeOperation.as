@@ -20,17 +20,18 @@
 			public static const INTERSECTION:String  	= "INTERSECTION";
 			public static const EXCLUSION:String 		= "EXCLUSION";
 			public static const SUBTRACTION:String 		= "SUBTRACT";
+			public static var POLYGONIZATION_LENGTH:int = 10;
 			
 			public static function operate( shape1:GeometricShape, shape2:GeometricShape, operation:String ):CompoundShape
 			{
 				// temporary hack:
 				if ( shape1.type == "MixedPath" )
 				{
-					shape1 = MixedPath(shape1).toPolygon(10);
+					shape1 = MixedPath(shape1).toPolygon(POLYGONIZATION_LENGTH);
 				}
 				if ( shape2.type == "MixedPath" )
 				{
-					shape2 = MixedPath(shape2).toPolygon(10);
+					shape2 = MixedPath(shape2).toPolygon(POLYGONIZATION_LENGTH);
 				}
 				
 				switch(  operation )
@@ -95,8 +96,11 @@
 			public function union_CompoundShape_CompoundShape( p1:CompoundShape, p2:CompoundShape ):CompoundShape
 			{
 				// one is fully contained in the other one  - return inner
-				var result:CompoundShape = getAllInsideUnion( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideUnion( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				var shape:GeometricShape;
@@ -120,8 +124,11 @@
 			public function union_CompoundShape_Polygon( p1:CompoundShape, p2:Polygon ):CompoundShape
 			{
 				// one is fully contained in the other one  - return inner
-				var result:CompoundShape = getAllInsideUnion( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideUnion( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				
@@ -243,8 +250,11 @@
 			public function intersection_CompoundShape_CompoundShape( p1:CompoundShape, p2:CompoundShape ):CompoundShape
 			{
 				// one is fully contained in the other one  - return inner
-				var result:CompoundShape = getAllInsideIntersection( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideIntersection( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				var shape:GeometricShape;
@@ -268,8 +278,11 @@
 			public function intersection_CompoundShape_Polygon( p1:CompoundShape, p2:Polygon ):CompoundShape
 			{
 				// one is fully contained in the other one  - return inner
-				var result:CompoundShape = getAllInsideIntersection( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideIntersection( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				var shape:GeometricShape;
@@ -328,13 +341,13 @@
 						return subtraction_Polygon_Polygon( Polygon(shape1), Polygon(shape2) );
 						break;
 					case "CompoundShapeCompoundShape":
-						return subtraction_CompoundShape_CompoundShape( CompoundShape(shape2), CompoundShape(shape1) );
+						return subtraction_CompoundShape_CompoundShape( CompoundShape(shape1), CompoundShape(shape2) );
 						break;
 					case "CompoundShapePolygon":
 						return subtraction_CompoundShape_Polygon( CompoundShape(shape1), Polygon(shape2) );
 						break;
 					case "PolygonCompoundShape":
-						return subtraction_CompoundShape_Polygon( CompoundShape(shape2), Polygon(shape1) );
+						return subtraction_Polygon_CompoundShape( Polygon(shape1), CompoundShape(shape2) );
 						break;
 				}
 				return null;
@@ -355,8 +368,11 @@
 			
 			public function subtraction_CompoundShape_CompoundShape( p1:CompoundShape, p2:CompoundShape ):CompoundShape
 			{
-				var result:CompoundShape = getAllInsideSubtraction( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideSubtraction( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				var shape:GeometricShape;
@@ -380,8 +396,11 @@
 			
 			public function subtraction_CompoundShape_Polygon( p1:CompoundShape, p2:Polygon ):CompoundShape
 			{
-				var result:CompoundShape = getAllInsideSubtraction( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideSubtraction( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				var shape:GeometricShape;
@@ -392,6 +411,28 @@
 					else return result;
 				}
 				mesh.addPolygon(p2);
+				
+				return getSubtractionResult( mesh, p1, p2 );		
+				
+			}
+			
+			public function subtraction_Polygon_CompoundShape( p1:Polygon, p2:CompoundShape ):CompoundShape
+			{
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideSubtraction( p1, p2 );
+					if ( result != null ) return result;
+				}
+				
+				var mesh:LinearMesh = new LinearMesh();
+				var shape:GeometricShape;
+				for ( var i:int = 0; i < p2.shapeCount; i++ )
+				{
+					shape = p2.getShapeAt( i );
+					if ( shape is Polygon ) mesh.addPolygon( Polygon(shape) );
+					else return result;
+				}
+				mesh.addPolygon(p1);
 				
 				return getSubtractionResult( mesh, p1, p2 );		
 				
@@ -417,12 +458,109 @@
 			{
 				var allPolys:Vector.<Polygon> = mesh.getPolygons();
 				mesh = new LinearMesh();
+				var potentialCandidates:Vector.<Polygon> = new Vector.<Polygon>();
+				var polysAdded:int = 0;
 				for ( var i:int = allPolys.length; --i > -1; )
 				{
-					var p:Vector2 = allPolys[i].getInsidePoint();
-					if ( p1.isInside( p, false ) && !p2.isInside( p, false )  )
+					var intersections:int = 0;
+					var p1_outside:int = 0;
+					var p2_outside:int = 0;
+					var p1_in_p2:int = 0;
+					var p2_in_p1:int = 0;
+					var lastOnP2:Boolean = false;
+					var lastP:Vector2;
+					var inP1:Boolean, inP2:Boolean, onP1:Boolean, onP2:Boolean;
+					var pointCount:int =  allPolys[i].pointCount;
+					var hasOutsideLine:Boolean = false;
+					for ( var j:int = pointCount; --j > -1; )
 					{
-						mesh.addPolygon( allPolys[i] );
+						var p:Vector2 = allPolys[i].getPointAt( j );
+						
+						inP1 = p1.isInside( p, true );
+						inP2 = p2.isInside( p, true );
+						onP2 = ( inP2 && !p2.isInside( p, false ) );
+						onP1 = ( inP1 && !p1.isInside( p, false ) );
+						
+						if ( onP2 && !inP1 )
+						{
+							p2_outside++;
+							break;
+						} else if ( onP1 && onP2 )
+						{
+							//TODO: handle case overlapping corners
+							intersections++;
+						} else if ( onP1 && inP2 )
+						{
+							p1_in_p2++;
+							break;
+						} else if ( onP1 && !inP2 )
+						{
+							p1_outside++;
+						} else if ( onP2 && inP1 )
+						{
+							p2_in_p1++;
+						}
+						if ( lastOnP2 && onP2 )
+						{
+							if ( !p1.isInside( lastP.getLerp(p,0.5), true ) )
+							{
+								hasOutsideLine = true;
+								break;
+							}
+						}
+						lastOnP2 = onP2;
+						lastP = p;
+					}
+					/*
+					trace( "Count: "+pointCount );
+					trace( "intersections",intersections);
+					trace( "p1_outside",p1_outside);
+					trace( "p2_outside",p2_outside);
+					trace( "p1_in_p2",p1_in_p2);
+					trace( "p2_in_p1",p2_in_p1);
+					trace( "hasOutsideLine",hasOutsideLine);
+					*/
+					if ( !hasOutsideLine && ( p1_in_p2 == 0 ))
+					{
+						if (  (p1_outside == ICountable(p1).pointCount && intersections > 0) )
+						{
+							potentialCandidates.push( allPolys[i] );
+							//trace( "POTENTIAL")
+						} else if ( !(p2_outside > 0) && (intersections != pointCount)   )
+						{
+							if (( p1_outside + p1_in_p2 > 0 ) && 
+								!(p2_outside + p1_in_p2 + p2_in_p1 == 0 && p1_outside > 0 && intersections > 0) && 
+								!(p1_in_p2 == pointCount) ||
+								 (p2_in_p1 == pointCount) ||
+								 ( p1_outside + intersections == pointCount ))
+							{
+								mesh.addPolygon( allPolys[i] );
+								polysAdded++;
+								//trace( "ADDED")
+							} else if ( intersections > 0 && intersections + p2_in_p1 == pointCount )
+							{
+								//trace( "outlier");
+								var splits:Vector.<ConvexPolygon> =  allPolys[i].getConvexPolygons( Polygon.SPLIT_FAST, false );
+								for ( j = 0; j < splits.length; j++ )
+								{
+									p = splits[j].centroid;
+									if ( p1.isInside( p, false ) && !p2.isInside( p, false )  )
+									{
+										mesh.addPolygon( allPolys[i] );
+										//trace( "outlier ADDED");
+										break;
+									}
+								}
+							}	 
+						} 
+					}
+				}
+				if ( polysAdded == 0 )
+				{
+					for ( i = 0; i < potentialCandidates.length; i++ )
+					{
+						mesh.addPolygon( potentialCandidates[i] );
+						//trace( "POTENTIAL ADDED")
 					}
 				}
 				
@@ -466,8 +604,11 @@
 			
 			public function exclusion_CompoundShape_CompoundShape( p1:CompoundShape, p2:CompoundShape ):CompoundShape
 			{
-				var result:CompoundShape = getAllInsideExclusion( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideExclusion( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				var shape:GeometricShape;
@@ -490,8 +631,11 @@
 			
 			public function exclusion_CompoundShape_Polygon( p1:CompoundShape, p2:Polygon ):CompoundShape
 			{
-				var result:CompoundShape = getAllInsideExclusion( p1, p2 );
-				if ( result != null ) return result;
+				if ( p1.intersect(p2).points.length == 0 )
+				{
+					var result:CompoundShape = getAllInsideExclusion( p1, p2 );
+					if ( result != null ) return result;
+				}
 				
 				var mesh:LinearMesh = new LinearMesh();
 				var shape:GeometricShape;

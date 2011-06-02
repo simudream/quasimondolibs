@@ -1467,10 +1467,7 @@ package com.quasimondo.geom
 			
 			if ( hasPoint( p ) ) return includeVertices;
 			
-			if ( includeVertices )
-			{
-				if ( getClosestPoint( p ).squaredDistanceToVector( p ) < SNAP_DISTANCE * SNAP_DISTANCE ) return true;
-			}
+			if ( getClosestPoint( p ).squaredDistanceToVector( p ) < SNAP_DISTANCE * SNAP_DISTANCE ) return includeVertices;
 			
 			var i:int, n:int = points.length;
 			

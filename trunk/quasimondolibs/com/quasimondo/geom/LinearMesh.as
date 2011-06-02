@@ -612,7 +612,7 @@ package com.quasimondo.geom
 					}
 					
 					check = pointIndices.toString();
-					if ( !polyCheck[check] && polygon.area > 0 )
+					if ( !polyCheck[check] && polygon.area != 0 )
 					{
 						if (  pointIndices.slice().sort(Array.UNIQUESORT) != 0 )
 						{
