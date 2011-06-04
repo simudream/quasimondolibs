@@ -49,6 +49,10 @@ package com.quasimondo.geom
 		
 		override public function rotate(angle:Number, center:Vector2=null):GeometricShape
 		{
+			if ( center == null ) {
+				var r:Rectangle = getBoundingRect();
+				center = new Vector2( r.x + r.width * 0.5, r.y + r.height * 0.5 );
+			}
 			for ( var i:int = 0; i < shapes.length; i++ )
 			{
 				shapes[i].rotate(angle, center);
@@ -58,6 +62,10 @@ package com.quasimondo.geom
 		
 		override public function scale(factorX:Number, factorY:Number, center:Vector2 = null):GeometricShape
 		{
+			if ( center == null ) {
+				var r:Rectangle = getBoundingRect();
+				center = new Vector2( r.x + r.width * 0.5, r.y + r.height * 0.5 );
+			}
 			for ( var i:int = 0; i < shapes.length; i++ )
 			{
 				shapes[i].scale(factorX, factorY, center);
@@ -210,6 +218,7 @@ package com.quasimondo.geom
 			}
 			return false;
 		}
+		
 		
 		override public function getBoundingRect(loose:Boolean=true):Rectangle
 		{
