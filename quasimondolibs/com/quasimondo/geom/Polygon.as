@@ -1758,12 +1758,12 @@ package com.quasimondo.geom
 		}
 		
 		
-		public function toMixedPath():MixedPath
+		public function toMixedPath( clonePoints:Boolean = false):MixedPath
 		{
 			var path:MixedPath = new MixedPath();
 			for ( var i:int = 0; i < points.length; i++ )
 			{
-				path.addPoint( points[i] );
+				path.addPoint( clonePoints ? points[i].getClone() : points[i] );
 			}
 			path.setClosed(true);
 			return path;
@@ -1892,6 +1892,30 @@ package com.quasimondo.geom
 			
 			points = reducedPoints.concat();
 			dirty = true;	
+		}
+		
+		public function getSlices( l:LineSegment ):Vector.<Polygon>
+		{
+			var mesh:LinearMesh = new LinearMesh();
+			mesh.addPolygon( Polygon(clone(true)) );
+			var ls:LineSegment = LineSegment(l.clone( true ));
+			var bounds:Rectangle = getBoundingRect();
+			ls.fit( bounds.x, bounds.x + bounds.width, bounds.y, bounds.y + bounds.height );
+			mesh.addLineSegment( ls );
+			var polys:Vector.<Polygon> = mesh.getPolygons();
+			for ( var i:int = polys.length; --i > -1; )
+			{
+				for ( var j:int = 0; j < polys[i].pointCount; j++ )
+				{
+					if ( !isInside( polys[i].getSide(j).getPoint(0.5), true ) )
+					{
+						polys.splice( i,1);
+						break;
+					}
+				}
+				
+			}
+			return polys;
 		}
 		
 		override public function reflect( lineSegment:LineSegment ):GeometricShape

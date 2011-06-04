@@ -263,18 +263,17 @@ package com.quasimondo.geom
 		
 		public function getMixedPathPointAt( index:int ):MixedPathPoint
 		{
-			return points[ index ];
+			return points[int(((index % points.length) + points.length)% points.length) ];
 		}
 		
 		public function getPointAt( index:int ):Vector2
 		{
-			return points[ index ];
+			return points[int(((index % points.length) + points.length)% points.length) ];
 		}
 		
 		public function updatePointAt(  index:int, p:MixedPathPoint ):Boolean
 		{
-			if ( index < 0 || index >= points.length ) return false;
-			points[ index ] = p;
+			points[int(((index % points.length) + points.length)% points.length) ] = p;
 			return updateSegments();
 		}
 		
