@@ -231,6 +231,10 @@
 					}
 				}
 	import com.quasimondo.geom.GeometricShape;
+	import com.quasimondo.geom.Vector2;
+	
+	import flash.geom.Rectangle;
+	import flash.sampler.getMemberNames;
 	
 				if ( points.length > 0 ) {
 					status = Intersection.INTERSECTION;
@@ -428,7 +432,7 @@
 					
 					var xRoots:Vector.<Number> = new Polynomial(new <Number>[c13x,c12x,c11x,c10x-c20x-s*c21x-s*s*c22x-s*s*s*c23x]).getRoots();
 					var yRoots:Vector.<Number> = new Polynomial(new <Number>[c13y,c12y,c11y,c10y-c20y-s*c21y-s*s*c22y-s*s*s*c23y]).getRoots();
-					trace(xRoots.length, c13x,c12x,c11x,c10x-c20x-s*c21x-s*s*c22x-s*s*s*c23x );
+					//trace(xRoots.length, c13x,c12x,c11x,c10x-c20x-s*c21x-s*s*c22x-s*s*s*c23x );
 					
 					if( xRoots.length > 0 && yRoots.length > 0 )
 					{
@@ -462,13 +466,23 @@
 				var min:Vector2 = l.p1.getMin(l.p2);
 				var max:Vector2 = l.p1.getMax(l.p2);
 				
-				var dx:Number = l.p2.x-l.p1.x
-				var dy:Number = l.p1.y-l.p2.y;
+				var c2x:Number = bz.p1.x -2 * bz.c.x + bz.p2.x;
+				var c2y:Number = bz.p1.y -2 * bz.c.y + bz.p2.y;
 				
-				var c2:Number = dy*(bz.p1.x-2*bz.c.x+bz.p2.x)+dx*(bz.p1.y-2*bz.c.y+bz.p2.y);
-				var c1:Number = dy*2*(bz.c.x-bz.p1.x)+dx*2*(bz.c.y-bz.p1.y);
-				var c0:Number = dy*bz.p1.x+dx*bz.p1.y+l.p1.x*l.p2.y-l.p2.x*l.p1.y;
+				var c1x:Number = -2 * bz.p1.x + 2 * bz.c.x;
+				var c1y:Number = -2 * bz.p1.y + 2 * bz.c.y;
 				
+				var c0x:Number = bz.p1.x;
+				var c0y:Number = bz.p1.y;
+				
+				var nx:Number = l.p1.y - l.p2.y;
+				var ny:Number = l.p2.x - l.p1.x;
+				
+				var cl:Number = l.p1.x * l.p2.y - l.p2.x * l.p1.y;
+				
+				var roots:Vector.<Number> = new Polynomial(Vector.<Number>([nx * c2x + ny * c2y,nx * c1x + ny * c1y,nx * c0x + ny * c0y + cl])).getRoots();
+				
+				/*
 				var pN:Vector.<Number> = new Vector.<Number>();
 				var p:Number = -c1/c2/2;
 				var d:Number = p*p-c0/c2;
@@ -478,18 +492,38 @@
 					d = Math.sqrt(d);
 					pN.push(p-d,p+d);
 				}
+				*/
 				
-				for each (var t:Number in pN)
+				for each (var t:Number in roots)
 				{
 					if (t>=0 && t<=1)
 					{ 
-						var b3x:Number = bz.p1.x + t*(bz.c.x-bz.p1.x)
-						var b3y:Number = bz.p1.y + t*(bz.c.y-bz.p1.y);
-						var b4x:Number = bz.c.x + t*(bz.p2.x-bz.c.x)
-						var b4y:Number = bz.c.y + t*(bz.p2.y-bz.c.y);
+						var b3x:Number = bz.p1.x + t * ( bz.c.x - bz.p1.x )
+						var b3y:Number = bz.p1.y + t * ( bz.c.y - bz.p1.y );
 						
-						var b5:Vector2 = new Vector2(b3x+t*(b4x-b3x), b3y+t*(b4y-b3y));
-						if (b5.x>=min.x && b5.x<=max.x && b5.y>=min.y && b5.y<=max.y) appendPoint(b5);
+						var b4x:Number = bz.c.x + t * ( bz.p2.x - bz.c.x)
+						var b4y:Number = bz.c.y + t * ( bz.p2.y - bz.c.y);
+						
+						var b5x:Number = b3x + t *( b4x - b3x );
+						var b5y:Number = b3y + t *( b4y - b3y );
+						
+						
+						if(l.p1.x == l.p2.x)
+						{
+							if( min.y <= b5y && b5y <= max.y)
+							{
+								appendPoint(new Vector2(b5x,b5y));
+							}
+						}else if( l.p1.y == l.p1.y )
+						{
+							if( min.x <= b5x && b5x <= max.x )
+							{
+								appendPoint(new Vector2(b5x,b5y));
+							}
+						} else if( b5x>=min.x && b5x<=max.x && b5y>=min.y && b5y<=max.y)
+						{
+							appendPoint(new Vector2(b5x,b5y));
+						}
 					}
 				}
 				if ( points.length >0 ) status = Intersection.INTERSECTION;
@@ -499,9 +533,16 @@
 			
 		public function line_line( l1:LineSegment, l2:LineSegment):Intersection
 		{
-			var ua_t:Number = (l2.p2.x-l2.p1.x)*(l1.p1.y-l2.p1.y)-(l2.p2.y-l2.p1.y)*(l1.p1.x-l2.p1.x);
-			var ub_t:Number = (l1.p2.x-l1.p1.x)*(l1.p1.y-l2.p1.y)-(l1.p2.y-l1.p1.y)*(l1.p1.x-l2.p1.x);
-			var u_b:Number  = (l2.p2.y-l2.p1.y)*(l1.p2.x-l1.p1.x)-(l2.p2.x-l2.p1.x)*(l1.p2.y-l1.p1.y);
+			var d1:Number = l1.p1.y-l2.p1.y;
+			var d2:Number = l1.p1.x-l2.p1.x;
+			var d3:Number = l2.p2.x-l2.p1.x;
+			var d4:Number = l2.p2.y-l2.p1.y;
+			var d5:Number = l1.p2.x-l1.p1.x;
+			var d6:Number = l1.p2.y-l1.p1.y;
+			
+			var ua_t:Number = d3 * d1 - d4 * d2;
+			var ub_t:Number = d5 * d1 - d6 * d2;
+			var u_b:Number  = d4 * d5 - d3 * d6;
 			
 			if (u_b != 0) 
 			{
@@ -509,7 +550,7 @@
 				var ub:Number = ub_t / u_b;
 				if (0<=ua && ua<=1 && 0<=ub && ub<=1) 
 				{
-					points.push(new Vector2(l1.p1.x+ua*(l1.p2.x-l1.p1.x), l1.p1.y+ua*(l1.p2.y-l1.p1.y)));
+					points[0] = new Vector2( l1.p1.x + ua * d5, l1.p1.y + ua * d6 );
 					status = Intersection.INTERSECTION;
 				} 
 			} else {
@@ -989,6 +1030,11 @@
 	    public function line_mixedPath( l:LineSegment, p:MixedPath ):Intersection
 	    {
 	    	var result:Intersection = new Intersection();
+			
+			var bounds:Polygon = Polygon.fromRectangle( p.getBoundingRect( true ) );
+			var quickTest:Intersection = bounds.intersect( l );
+			if ( quickTest.status == Intersection.NO_INTERSECTION ) return quickTest;
+			
 	    	var intersection:Intersection;
 	    	for ( var i:int = 0; i < p.segmentCount; i++ )
 	    	{
@@ -996,7 +1042,10 @@
 	    		if ( intersection.status == Intersection.INTERSECTION )
 	    		{
 	    			result.status = Intersection.INTERSECTION;
-	    			result.appendPoint( intersection.points[0]);
+					for ( var j:int = 0; j < intersection.points.length; j++ )
+					{
+	    				result.appendPoint( intersection.points[j]);
+					}
 	    		} else if ( result.status == Intersection.NO_INTERSECTION )
 	    		{
 	    			result.status = intersection.status;
