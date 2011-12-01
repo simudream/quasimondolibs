@@ -1,6 +1,6 @@
 <languageVersion : 1.0;>
 
-kernel RGB2HSL
+kernel HSLAdjust
 <   namespace : "com.quasimondo";
     vendor : "Mario Klingemann";
     version : 1;
