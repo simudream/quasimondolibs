@@ -1,0 +1,1 @@
+More or less useful tools and experimental code mostly in the realm of geometry, bitmap manipulation and generative art.
